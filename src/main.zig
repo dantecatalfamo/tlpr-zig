@@ -7,6 +7,8 @@ const cut_cmd = "\n\n\n\n\u{001D}V\u{0001}";
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var allocator = &gpa.allocator;
+    defer gpa.deinit();
+
     var ip: ?[]u8 = null;
     var cut = false;
     var read_buffer: [4086]u8 = undefined;
