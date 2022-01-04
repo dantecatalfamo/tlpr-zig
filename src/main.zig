@@ -2,13 +2,13 @@ const std = @import("std");
 const os = std.os;
 const mem = std.mem;
 
-const cut_cmd = "\n\n\n\n\u{001D}V\u{0001}";
+const reset_cmd = "\x1b\x40";
+const cut_cmd = "\n\n\n\n\x1DV\x01";
 
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    var allocator = &gpa.allocator;
-    defer gpa.deinit();
-
+    var allocator = gpa.allocator();
+    defer _ = gpa.deinit();
     var ip: ?[]u8 = null;
     var cut = false;
     var read_buffer: [4086]u8 = undefined;
@@ -35,27 +35,29 @@ pub fn main() anyerror!void {
 
     const addr = try std.net.Address.resolveIp(ip.?, 9100);
     const stream = try std.net.tcpConnectToAddress(addr);
-    const writer = stream.writer();
+    const printer = stream.writer();
+
+    try printer.writeAll(reset_cmd);
 
     while (true) {
         const n = try stdin.read(read_buffer[0..]);
         if (n == 0) { break; }
-        _ = try writer.write(read_buffer[0..n]);
+        _ = try printer.write(read_buffer[0..n]);
     }
 
     if (cut) {
-        try writer.print(cut_cmd, .{});
+        try printer.writeAll(cut_cmd);
     }
 }
 
 fn usage() noreturn {
     const stderr = std.io.getStdErr().writer();
     const usage_text =
-        \\ usage: tlpr --ip <ip> [-c]
-        \\ Thermal Line printer application.
-        \\ Prints stdin through thermal printer.
+        \\usage: tlpr --ip <ip> [-c]
+        \\  Thermal Line printer application.
+        \\  Prints stdin through thermal printer.
         \\
-        \\ -c cut paper after printing.
+        \\  -c cut paper after printing.
     ;
     stderr.print("{s}\n", .{usage_text}) catch unreachable;
     os.exit(1);
