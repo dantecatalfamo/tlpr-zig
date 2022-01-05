@@ -1,9 +1,7 @@
 const std = @import("std");
 const os = std.os;
 const mem = std.mem;
-
-const reset_cmd = "\x1b\x40";
-const cut_cmd = "\n\n\n\n\x1DV\x01";
+const commands = @import("./commands.zig");
 
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -37,7 +35,7 @@ pub fn main() anyerror!void {
     const stream = try std.net.tcpConnectToAddress(addr);
     const printer = stream.writer();
 
-    try printer.writeAll(reset_cmd);
+    try printer.writeAll(commands.initialize);
 
     while (true) {
         const n = try stdin.read(read_buffer[0..]);
@@ -46,7 +44,7 @@ pub fn main() anyerror!void {
     }
 
     if (cut) {
-        try printer.writeAll(cut_cmd);
+        try printer.writeAll(commands.cut);
     }
 }
 

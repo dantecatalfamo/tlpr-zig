@@ -27,7 +27,7 @@ pub const cancel_page = "\x18";
 // Generate pulse at real-time not implemented yet
 
 /// In page mode, prints all buffered data in the printing area collectively.
-pub const print_page = u8[_]{ ESC, FF };
+pub const print_page = [_]u8{ ESC, FF };
 
 /// Sets the character spacing for the right side of the character to
 /// [ n horizontal or vertical motion units].
@@ -97,14 +97,14 @@ const bit_image_mode = enum(u8) {
 
 /// Turns underline mode on or off
 pub const underline = struct {
-    pub const none = u8[_]{ ESC, '-', 0 };
-    pub const one = u8[_]{ ESC, '-', 1 };
-    pub const two = u8[_]{ ESC, '-', 2 };
+    pub const none = [_]u8{ ESC, '-', 0 };
+    pub const one = [_]u8{ ESC, '-', 1 };
+    pub const two = [_]u8{ ESC, '-', 2 };
 };
 
 pub const line_spacing = struct {
     /// Selects 1/ 6-inch line (approximately 4.23mm) spacing.
-    pub const default = u8[_]{ ESC, '2' };
+    pub const default = [_]u8{ ESC, '2' };
 
     /// Sets the line spacing to [ n ╳ vertical or horizontal motion
     /// unit] inches.
@@ -115,20 +115,20 @@ pub const line_spacing = struct {
 
 /// Set peripheral device
 pub const peripheral_device = struct {
-    pub const disable = u8[_]{ ESC, '=', 0 };
-    pub const enable = u8[_]{ ESC, '=', 1 };
+    pub const disable = [_]u8{ ESC, '=', 0 };
+    pub const enable = [_]u8{ ESC, '=', 1 };
 };
 
 // cancel user-defined characters not implemented yet
 
 /// Clears the data in the print buffer and resets the printer mode to
 /// the mode that was in effect when the power was turned on.
-pub const initialize_printer = u8[_]{ ESC, '@' };
+pub const initialize = [_]u8{ ESC, '@' };
 
 /// Sets horizontal tab positions.
 /// • positions specifies the column number for setting a horizontal
 ///   tab position from the beginning of the line.
-/// You can set a maximum of 32 positions.p
+/// You can set a maximum of 32 positions.
 pub fn setHorizontalTabPositions(allocator: mem.Allocator, positions: []const u8) ![]u8 {
     if (positions.len > 32) {
         return error.TooManyTabPositions;
@@ -169,7 +169,7 @@ pub const character_font = struct {
 };
 
 /// Selects an international character set
-pub const international_character_set = enum (u4) {
+pub const international_character_set = struct {
     pub const usa = [_]u8{ ESC, 'R', 0 };
     pub const france = [_]u8{ ESC, 'R', 1 };
     pub const germany = [_]u8{ ESC, 'R', 2 };
@@ -180,8 +180,8 @@ pub const international_character_set = enum (u4) {
     pub const spain = [_]u8{ ESC, 'R', 7 };
     pub const japan = [_]u8{ ESC, 'R', 8 };
     pub const norway = [_]u8{ ESC, 'R', 9 };
-    pub const denmark = [_]u8{ ESC, 'R', 10 };
-    pub const spain = [_]u8{ ESC, 'R', 11 };
+    // pub const denmark = [_]u8{ ESC, 'R', 10 };
+    // pub const spain = [_]u8{ ESC, 'R', 11 };
     pub const latin = [_]u8{ ESC, 'R', 12 };
     pub const korea = [_]u8{ ESC, 'R', 13 };
     /// The character sets for Slovenia/Croatia and China are
@@ -279,7 +279,7 @@ pub const character_code_table = struct {
     pub const pc850 = [_]u8{ ESC, 't', 2 };
     /// Portuguese
     pub const pc860 = [_]u8{ ESC, 't', 3 };
-    ///  [Canadian French]
+    /// [Canadian French]
     pub const pc863 = [_]u8{ ESC, 't', 4 };
     /// Nodic
     pub const pc865 = [_]u8{ ESC, 't', 5 };
@@ -290,7 +290,7 @@ pub const character_code_table = struct {
     pub const pc755 = [_]u8{ ESC, 't', 9 };
     pub const iran = [_]u8{ ESC, 't', 10 };
     pub const wpc1252 = [_]u8{ ESC, 't', 16 };
-    /// :cyrillic#2
+    /// cyrillic#2
     pub const pc866 = [_]u8{ ESC, 't', 17 };
     /// latin2
     pub const pc852 = [_]u8{ ESC, 't', 18 };
