@@ -10,6 +10,9 @@ pub fn main() anyerror!void {
     var ip: ?[]u8 = null;
     var cut = false;
     var justify: ?[]u8 = null;
+    var underline: ?u2 = null;
+    var emphasis = false;
+    var rotate = false;
     var read_buffer: [4086]u8 = undefined;
     const stdin = std.io.getStdIn().reader();
 
@@ -20,7 +23,9 @@ pub fn main() anyerror!void {
     while (arg_idx < args.len) : (arg_idx += 1) {
         const arg = args[arg_idx];
 
-        if (mem.eql(u8, "--ip", arg)) {
+        if (mem.eql(u8, "--help", arg)) {
+            usage();
+        } else if (mem.eql(u8, "--ip", arg)) {
             if (arg_idx + 1 == args.len) {
                 usage();
             }
@@ -34,8 +39,21 @@ pub fn main() anyerror!void {
             }
             justify = args[arg_idx + 1];
             arg_idx += 1;
+        } else if (mem.startsWith(u8, arg, "-u")) {
+            if (arg.len == "-u".len) {
+                underline = 1;
+            } else if (mem.eql(u8, "-uu", arg)) {
+                underline = 2;
+            } else {
+                usage();
+            }
+        } else if (mem.eql(u8, "-e", arg)) {
+            emphasis = true;
+        } else if (mem.eql(u8, "--rotate", arg)) {
+            rotate = true;
         }
     }
+
 
     if (ip == null) {
         usage();
@@ -59,6 +77,22 @@ pub fn main() anyerror!void {
         }
     }
 
+    if (underline) |ul| {
+        if (ul == 1) {
+            try printer.writeAll(&commands.underline.one);
+        } else if (ul == 2) {
+            try printer.writeAll(&commands.underline.two);
+        }
+    }
+
+    if (emphasis) {
+        try printer.writeAll(&commands.emphasis.on);
+    }
+
+    if (rotate) {
+        try printer.writeAll(&commands.clockwise_rotation_mode.on);
+    }
+
     while (true) {
         const n = try stdin.read(read_buffer[0..]);
         if (n == 0) { break; }
@@ -79,6 +113,10 @@ fn usage() noreturn {
         \\
         \\    -c cut paper after printing.
         \\    --justify <left|right|center>
+        \\    -u underline
+        \\    -uu double underline
+        \\    -e emphasis
+        \\    --rotate rotate 90 degrees clockwise
     ;
     stderr.print("{s}\n", .{usage_text}) catch unreachable;
     os.exit(1);
