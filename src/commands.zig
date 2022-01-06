@@ -407,5 +407,3 @@ pub const partial_cut = [_]u8{ GS, 'V', 1 };
 pub fn feedAndPartualCut(units: u8) [4]u8 {
     return [_]u8{ GS, 'V', 66, units };
 }
-
-pub const cut = "\n\n\n\n" ++ "\x1DV\x01";

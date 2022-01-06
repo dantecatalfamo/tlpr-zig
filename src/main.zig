@@ -147,7 +147,7 @@ pub fn main() anyerror!void {
     }
 
     if (cut) {
-        try printer.writeAll(commands.cut);
+        try printer.writeAll(&commands.feedAndPartualCut(0));
     }
 }
 
