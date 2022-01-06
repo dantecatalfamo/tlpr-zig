@@ -13,6 +13,7 @@ pub fn main() anyerror!void {
     var underline: ?u2 = null;
     var emphasis = false;
     var rotate = false;
+    var upside_down = false;
     var read_buffer: [4086]u8 = undefined;
     const stdin = std.io.getStdIn().reader();
 
@@ -51,6 +52,8 @@ pub fn main() anyerror!void {
             emphasis = true;
         } else if (mem.eql(u8, "--rotate", arg)) {
             rotate = true;
+        } else if (mem.eql(u8, "--upsidedown", arg)) {
+            upside_down = true;
         }
     }
 
@@ -93,6 +96,10 @@ pub fn main() anyerror!void {
         try printer.writeAll(&commands.clockwise_rotation_mode.on);
     }
 
+    if (upside_down) {
+        try printer.writeAll(&commands.upside_down_mode.enable);
+    }
+
     while (true) {
         const n = try stdin.read(read_buffer[0..]);
         if (n == 0) { break; }
@@ -117,6 +124,7 @@ fn usage() noreturn {
         \\    -uu double underline
         \\    -e emphasis
         \\    --rotate rotate 90 degrees clockwise
+        \\    --upsidedown enable upside down mode
     ;
     stderr.print("{s}\n", .{usage_text}) catch unreachable;
     os.exit(1);
