@@ -16,6 +16,7 @@ pub fn main() anyerror!void {
     var upside_down = false;
     var char_height: ?u4 = null;
     var char_width: ?u4 = null;
+    var reverse_black_white = false;
     var read_buffer: [4086]u8 = undefined;
     const stdin = std.io.getStdIn().reader();
 
@@ -69,6 +70,8 @@ pub fn main() anyerror!void {
             }
             char_width = try std.fmt.parseInt(u4, args[arg_idx + 1], 10);
             arg_idx += 1;
+        } else if (mem.eql(u8, "-r", arg)) {
+            reverse_black_white = true;
         }
     }
 
@@ -133,6 +136,10 @@ pub fn main() anyerror!void {
         try printer.writeAll(&commands.selectCharacterSize(h, w));
     }
 
+    if (reverse_black_white) {
+        try printer.writeAll(&commands.reverse_white_black_mode.on);
+    }
+
     while (true) {
         const n = try stdin.read(read_buffer[0..]);
         if (n == 0) { break; }
@@ -160,6 +167,7 @@ fn usage() noreturn {
         \\    --upsidedown enable upside down mode
         \\    --height <1-8> select character height
         \\    --width <1-8> select character width
+        \\    -r reverse black/white printing
     ;
     stderr.print("{s}\n", .{usage_text}) catch unreachable;
     os.exit(1);

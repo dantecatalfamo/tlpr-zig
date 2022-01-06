@@ -2,6 +2,9 @@ const std = @import("std");
 const mem = std.mem;
 const control_code = std.ascii.control_code;
 
+///! nL, nH, etc. means n lower bits and n higher bits. For passing
+///! 16 bit integers
+
 /// Moves the print position to the next horizontal tab position.
 pub const HT = control_code.TAB;
 /// Prints the data in the print buffer and feeds one line based on
@@ -74,17 +77,18 @@ pub fn setPrintPosition(l: u8, h: u8) [4]u8 {
 // select user-defined character set not implemented yet
 // define user-defined character set not implemented yet
 
+// TODO: This needs to be reviewed, I may have misunderstood the manual
 /// Caller is responsible for freeing returned memory
-pub fn bitImageMode(allocator: mem.Allocator, mode: bit_image_mode, width: u8, height: u2, image_data: []const u8) ![]u8 {
-    if (width * height == image_data.len) {
+pub fn bitImageMode(allocator: mem.Allocator, mode: bit_image_mode, nl: u8, nh: u2, image_data: []const u8) ![]u8 {
+    if (nl * nh == image_data.len) {
         return error.ImageLengthMismatch;
     }
     const wide = (mode == .single24 or mode == .double24);
-    const image_length = width * height * (if (wide) 3 else 1);
+    const image_length = nl * nh * (if (wide) 3 else 1);
     if (image_data.len != image_length) {
         return error.ImageLengthMismatch;
     }
-    const preamble = [_]u8{ ESC, '*', mode, width, height };
+    const preamble = [_]u8{ ESC, '*', mode, nl, nh };
     return mem.concat(allocator, u8, .{ preamble, image_data });
 }
 
@@ -180,8 +184,8 @@ pub const international_character_set = struct {
     pub const spain = [_]u8{ ESC, 'R', 7 };
     pub const japan = [_]u8{ ESC, 'R', 8 };
     pub const norway = [_]u8{ ESC, 'R', 9 };
-    // pub const denmark = [_]u8{ ESC, 'R', 10 };
-    // pub const spain = [_]u8{ ESC, 'R', 11 };
+    pub const denmark_ii = [_]u8{ ESC, 'R', 10 };
+    pub const spain_ii = [_]u8{ ESC, 'R', 11 };
     pub const latin = [_]u8{ ESC, 'R', 12 };
     pub const korea = [_]u8{ ESC, 'R', 13 };
     /// The character sets for Slovenia/Croatia and China are
@@ -226,8 +230,8 @@ pub fn setPageModeArea(xl: u8, xh: u8, yl: u8, yh: u8, dxl: u8, dxh: u8, dyl: u8
 /// using the horizontal or vertical motion unit.
 /// • This command sets the distance from the current position to [(
 ///   nL + nH ╳ 256) ╳ horizontal or vertical motion unit]
-pub fn setRelativePrintPosition(l: u8, h: u8) [4]u8 {
-    return [_]u8{ ESC, '\\', l, h };
+pub fn setRelativePrintPosition(nl: u8, nh: u8) [4]u8 {
+    return [_]u8{ ESC, '\\', nl, nh };
 }
 
 /// Aligns all the data in one line to the specified position
@@ -324,5 +328,76 @@ pub fn selectCharacterSize(height: u3, width: u3) [3]u8 {
     return [_]u8{ GS, '!', n };
 }
 
+/// • Sets the absolute vertical print starting position for buffer
+///   character data in page mode.
+/// • This command sets the absolute print position to [( nL + nH ×
+///   256) × (vertical or horizontal motion unit)] inches.
+pub fn setPageModeAbsoluteVerticalPrintPosition(nl: u8, nh: u8) [4]u8 {
+    return [_]u8{ GS, '$', nl, nh };
+}
+
+// define downloaded image not implemented yet
+// /// Defines a downloaded bit image with the number of dots specified by x and y.
+// /// ·x indicates the number of dots in the horizontal direction.
+// /// ·y indicates he number of dots in the vertical direction.
+// /// Caller is responsible for freeing memory
+// pub fn defineDownloadedBitImage(allocator: mem.Allocator, width: u8, height: u6, dots: []const u8) ![]u8 {
+//     if (height > 48) {
+//         return error.HeightTooLarge;
+//     }
+//
+// }
+
+pub const print_downloaded_bit_image = struct {
+    pub const normal = [_]u8{ GS, '/', 0 };
+    pub const double_width = [_]u8{ GS, '/', 1 };
+    pub const double_height = [_]u8{ GS, '/', 2 };
+    pub const quadruple = [_]u8{ GS, '/', 3 };
+};
+
+/// Starts or ends macro definition.
+/// • Macro definition starts when this command is received during normal operation.
+///   Macro definition ends when this command is received during macro definition.
+/// • When GS ^ is received during macro definition, the printer ends
+///   macro definition and clears the definition.
+/// • Macro is not defined when the power is turned on.
+/// • The defined contents of the macro are not cleared by ESC @.
+///   Therefore, ESC @ can be included in the contents of the macro
+///   definition.
+/// • If the printer receives GS : again immediately after previously
+///   receiving GS : the printer remains in the macro undefined state.
+/// • The contents of the macro can be defined up to 2048 bytes. If
+///   the macro definition exceed 2048 bytes, excess data is not stored.
+pub const start_or_end_macro_definition = [_]u8{ GS, ':' };
+
+/// Turns on or off white/black reverse printing mode.
+pub const reverse_white_black_mode = struct {
+    pub const off = [_]u8{ GS, 'B', 0 };
+    pub const on = [_]u8{ GS, 'B', 1 };
+};
+
+/// Selects the printing position of HRI characters when printing a
+/// bar code.
+/// • HRI indicates Human Readable Interpretation.
+pub const select_hri_characters_printing_position = struct {
+    pub const not_printed = [_]u8{ GS, 'H', 0 };
+    pub const above_bar_code = [_]u8{ GS, 'H', 1 };
+    pub const below_bar_code = [_]u8{ GS, 'H', 2 };
+    pub const above_and_below_bar_code = [_]u8{ GS, 'H', 3 };
+};
+
+/// Sets the left margin using nL and nH.
+/// The left margin is set to [(nL + nH X 256) X (horizontal motion unit)] inches.
+pub fn setLeftMargin(nl: u8, nh: u8) [4]u8 {
+    [_]u8{ GS, 'L', nl, nh };
+}
+
+/// Sets the horizontal and vertical motion units to approximately
+/// 25.4/ x mm { 1/ x inches} and approximately 25.4/ y mm {1/ y
+/// inches}, respectively. When x and y are set to 0, the default
+/// setting of each value is used.
+pub fn setMotionUnits(x: u8, y: u8) [4]u8 {
+    return [_]u8{ GS, 'P', x, y };
+}
 
 pub const cut = "\n\n\n\n" ++ "\x1DV\x01";
