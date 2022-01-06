@@ -73,7 +73,7 @@ pub fn main() anyerror!void {
 fn usage() noreturn {
     const stderr = std.io.getStdErr().writer();
     const usage_text =
-        \\usage: tlpr --ip <ip> [-c]
+        \\usage: tlpr --ip <ip> [options]
         \\    Thermal Line printer application.
         \\    Prints stdin through thermal printer.
         \\
