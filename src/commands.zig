@@ -18,12 +18,19 @@ pub const FF = control_code.FF;
 pub const CR = control_code.CR;
 
 pub const ESC = control_code.ESC;
+pub const CAN = control_code.CAN;
 pub const FS = control_code.FS;
 pub const GS = control_code.GS;
 pub const SP = 0x20;
 
+/// Split a 16-bit unsigned integer into nL and nH values
+/// (little-endian).
+fn split16(value: u16) [2]u8 {
+    return [_]u8{ @truncate(u8, value & 0xFF), @truncate(u8, (value & 0xFF00) >> 8) };
+}
+
 /// In page mode, deletes all the print data in the current printable area.
-pub const cancel_page = "\x18";
+pub const cancel_page = [_]u8{ CAN };
 
 // real-time status transmission not implemented yet
 // Real-time request not implemented yet
