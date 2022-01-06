@@ -14,6 +14,8 @@ pub fn main() anyerror!void {
     var emphasis = false;
     var rotate = false;
     var upside_down = false;
+    var char_height: ?u4 = null;
+    var char_width: ?u4 = null;
     var read_buffer: [4086]u8 = undefined;
     const stdin = std.io.getStdIn().reader();
 
@@ -54,6 +56,19 @@ pub fn main() anyerror!void {
             rotate = true;
         } else if (mem.eql(u8, "--upsidedown", arg)) {
             upside_down = true;
+        }
+        else if (mem.eql(u8, "--height", arg)) {
+            if (arg_idx + 1 == args.len) {
+                usage();
+            }
+            char_height = try std.fmt.parseInt(u4, args[arg_idx + 1], 10);
+            arg_idx += 1;
+        } else if (mem.eql(u8, "--width", arg)) {
+            if (arg_idx + 1 == args.len) {
+                usage();
+            }
+            char_width = try std.fmt.parseInt(u4, args[arg_idx + 1], 10);
+            arg_idx += 1;
         }
     }
 
@@ -100,6 +115,24 @@ pub fn main() anyerror!void {
         try printer.writeAll(&commands.upside_down_mode.enable);
     }
 
+    if (char_height != null or char_width != null) {
+        if (char_height) |height| {
+            if (height > 8 or height < 1) {
+                usage();
+            }
+        }
+
+        if (char_width) |width| {
+            if (width > 8 or width < 1) {
+                usage();
+            }
+        }
+
+        const h = @truncate(u3, (char_height orelse 1) - 1);
+        const w = @truncate(u3, (char_width orelse 1) - 1);
+        try printer.writeAll(&commands.selectCharacterSize(h, w));
+    }
+
     while (true) {
         const n = try stdin.read(read_buffer[0..]);
         if (n == 0) { break; }
@@ -125,6 +158,8 @@ fn usage() noreturn {
         \\    -e emphasis
         \\    --rotate rotate 90 degrees clockwise
         \\    --upsidedown enable upside down mode
+        \\    --height <1-8> select character height
+        \\    --width <1-8> select character width
     ;
     stderr.print("{s}\n", .{usage_text}) catch unreachable;
     os.exit(1);

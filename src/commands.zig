@@ -317,7 +317,12 @@ pub const nv_bit_image_mode = enum(u2) {
 
 // Define NV bit image is not implemented yet
 
-
+pub fn selectCharacterSize(height: u3, width: u3) [3]u8 {
+    var n: u8 = 0;
+    n |= height;
+    n |= (@as(u8, width) << 4);
+    return [_]u8{ GS, '!', n };
+}
 
 
 pub const cut = "\n\n\n\n" ++ "\x1DV\x01";
