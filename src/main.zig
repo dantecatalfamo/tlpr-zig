@@ -17,6 +17,7 @@ pub fn main() anyerror!void {
     var char_height: ?u4 = null;
     var char_width: ?u4 = null;
     var reverse_black_white = false;
+    var no_initialize = false;
     var read_buffer: [4086]u8 = undefined;
     const stdin = std.io.getStdIn().reader();
 
@@ -72,6 +73,8 @@ pub fn main() anyerror!void {
             arg_idx += 1;
         } else if (mem.eql(u8, "-r", arg)) {
             reverse_black_white = true;
+        } else if (mem.eql(u8, "-n", arg)) {
+            no_initialize = true;
         }
     }
 
@@ -84,7 +87,9 @@ pub fn main() anyerror!void {
     const stream = try std.net.tcpConnectToAddress(addr);
     const printer = stream.writer();
 
-    try printer.writeAll(&commands.initialize);
+    if (!no_initialize) {
+        try printer.writeAll(&commands.initialize);
+    }
 
     if (justify) |justification| {
         if (mem.eql(u8, justification, "left")) {
@@ -168,6 +173,7 @@ fn usage() noreturn {
         \\    --height <1-8> select character height
         \\    --width <1-8> select character width
         \\    -r reverse black/white printing
+        \\    -n don't initialize the printer when connecting
     ;
     stderr.print("{s}\n", .{usage_text}) catch unreachable;
     os.exit(1);
