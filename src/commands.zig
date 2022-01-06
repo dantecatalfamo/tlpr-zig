@@ -155,8 +155,8 @@ pub const double_strike = struct {
 
 /// Prints the data in the print buffer and feeds the paper [ n ╳
 /// vertical or horizontal motion unit] inches.
-pub fn printAndFeed(inches: u8) [3]u8 {
-    return [_]u8{ ESC, 'J', inches };
+pub fn printAndFeed(units: u8) [3]u8 {
+    return [_]u8{ ESC, 'J', units };
 }
 
 /// Switches from standard mode to page mode.
@@ -396,8 +396,16 @@ pub fn setLeftMargin(nl: u8, nh: u8) [4]u8 {
 /// 25.4/ x mm { 1/ x inches} and approximately 25.4/ y mm {1/ y
 /// inches}, respectively. When x and y are set to 0, the default
 /// setting of each value is used.
+/// [Default] x = 180, y = 360
 pub fn setMotionUnits(x: u8, y: u8) [4]u8 {
     return [_]u8{ GS, 'P', x, y };
+}
+
+pub const partial_cut = [_]u8{ GS, 'V', 1 };
+
+/// Feeds paper (cutting position + [n x(vertical motion unit)]), and cuts the paper partially
+pub fn feedAndPartualCut(units: u8) [4]u8 {
+    return [_]u8{ GS, 'V', 66, units };
 }
 
 pub const cut = "\n\n\n\n" ++ "\x1DV\x01";
