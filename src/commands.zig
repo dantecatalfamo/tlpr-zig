@@ -450,3 +450,38 @@ pub const partial_cut = [_]u8{ GS, 'V', 1 };
 pub fn feedAndPartualCut(units: u8) [4]u8 {
     return [_]u8{ GS, 'V', 66, units };
 }
+
+/// Sets the printing area width to the area specified by nL and nH.
+/// • The printing area width is set to [( nL + nH ╳ 256) ╳ horizontal
+///   motion unit]] inches.
+pub fn setPrintingAreaWidth(units: u16) [4]u8 {
+    const split_units = splitU16(units);
+    return [_]u8{ GS, 'W', split_units.l, split_units.h };
+}
+
+/// Sets the relative vertical print starting position from the current position in page mode.
+/// • This command sets the distance from the current position to [(nL
+///   + nH × 256) × vertical or horizontal motion unit].
+pub fn setPageModeRelativeVerticalPrintPosition(units: u16) [4]u8 {
+    const split_units = splitU16(units);
+    return [_]u8{ GS, '\\', split_units.l, split_units.h };
+}
+
+/// Executes a macro.
+/// The waiting time is t × 100 ms for every macro execution.
+pub fn executeMacro(times: u8, wait_time: u8, mode: execute_macro_mode) [5]u8 {
+    return [_]u8{ GS, '^', times, wait_time, @enumToInt(mode) };
+}
+
+pub const execute_macro_mode = enum {
+    continuous,
+    on_feed_button
+};
+
+// Enable/Disable Automatic Status Back (ASB) not implemented yet.
+
+/// Select font for Human Readable Interpretation (HRI) characters
+pub const hri_font = struct {
+    pub const font_a = [_]u8{ GS, 'f', 0 };
+    pub const font_b = [_]u8{ GS, 'f', 1 };
+};
