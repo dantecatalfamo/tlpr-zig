@@ -23,11 +23,19 @@ pub const FS = control_code.FS;
 pub const GS = control_code.GS;
 pub const SP = 0x20;
 
-/// Split a 16-bit unsigned integer into nL and nH values
+/// Split a unsigned 16-bit integer n into nL and nH values
 /// (little-endian).
-fn split16(value: u16) [2]u8 {
-    return [_]u8{ @truncate(u8, value & 0xFF), @truncate(u8, (value & 0xFF00) >> 8) };
+fn splitU16(value: u16) split_u16 {
+    return .{
+        .h = @truncate(u8, value >> 8),
+        .l = @truncate(u8, value & 0xFF)
+    };
 }
+
+pub const split_u16 = struct {
+    l: u8,
+    h: u8
+};
 
 /// In page mode, deletes all the print data in the current printable area.
 pub const cancel_page = [_]u8{ CAN };
@@ -77,22 +85,21 @@ pub const print_mode_options = struct {
 
 /// Sets the distance from the beginning of the line to the position
 /// at which subsequent characters are to be printed.
-pub fn setPrintPosition(l: u8, h: u8) [4]u8 {
-    return .{ ESC, '$', l, h };
+pub fn setPrintPosition(motion_units: u16) [4]u8 {
+    const split_units = splitU16(motion_units);
+    return .{ ESC, '$', split_units.l, split_units.h };
 }
 
 // select user-defined character set not implemented yet
 // define user-defined character set not implemented yet
 
-// TODO: This needs to be reviewed, I may have misunderstood the manual
 /// Caller is responsible for freeing returned memory
-pub fn bitImageMode(allocator: mem.Allocator, mode: bit_image_mode, nl: u8, nh: u2, image_data: []const u8) ![]u8 {
-    if (nl * nh == image_data.len) {
-        return error.ImageLengthMismatch;
-    }
-    const wide = (mode == .single24 or mode == .double24);
-    const image_length = nl * nh * (if (wide) 3 else 1);
-    if (image_data.len != image_length) {
+pub fn bitImageMode(allocator: mem.Allocator, mode: bit_image_mode, image_width: u10, image_data: []const u8) ![]u8 {
+    const nl = @truncate(u8, image_width & 0xFF);
+    const nh = @truncate(u2, image_width >> 8);
+    const tall = (mode == .single24 or mode == .double24);
+    const expected_length = image_width * (if (tall) 3 else 1);
+    if (image_data.len != expected_length) {
         return error.ImageLengthMismatch;
     }
     const preamble = [_]u8{ ESC, '*', mode, nl, nh };
@@ -229,16 +236,27 @@ pub const clockwise_rotation_mode = struct {
 /// y0 = [( yL + yH × 256) × (vertical motion unit)]
 /// dx = [ dxL + dxH × 256] × (horizontal motion unit)]
 /// dy = [ dyL + dyH × 256] × (vertical motion unit)]
-pub fn setPageModeArea(xl: u8, xh: u8, yl: u8, yh: u8, dxl: u8, dxh: u8, dyl: u8, dyh: u8) [10]u8 {
-    return [_]u8{ ESC, 'W', xl, xh, yl, yh, dxl, dxh, dyl, dyh };
+pub fn setPageModeArea(x: u16, y: u16, dx: u16, dy: u16) [10]u8 {
+    const x_split = splitU16(x);
+    const y_split = splitU16(y);
+    const dx_split = splitU16(dx);
+    const dy_split = splitU16(dy);
+    return [_]u8{
+        ESC, 'W',
+        x_split.l, x_split.h,
+        y_split.l, y_split.h,
+        dx_split.l, dx_split.h,
+        dy_split.l, dy_split.h
+    };
 }
 
 /// Sets the print starting position based on the current position by
 /// using the horizontal or vertical motion unit.
 /// • This command sets the distance from the current position to [(
 ///   nL + nH ╳ 256) ╳ horizontal or vertical motion unit]
-pub fn setRelativePrintPosition(nl: u8, nh: u8) [4]u8 {
-    return [_]u8{ ESC, '\\', nl, nh };
+pub fn setRelativePrintPosition(units: u16) [4]u8 {
+    const split_units = splitU16(units);
+    return [_]u8{ ESC, '\\', split_units.l, split_units.h };
 }
 
 /// Aligns all the data in one line to the specified position
@@ -339,8 +357,9 @@ pub fn selectCharacterSize(height: u3, width: u3) [3]u8 {
 ///   character data in page mode.
 /// • This command sets the absolute print position to [( nL + nH ×
 ///   256) × (vertical or horizontal motion unit)] inches.
-pub fn setPageModeAbsoluteVerticalPrintPosition(nl: u8, nh: u8) [4]u8 {
-    return [_]u8{ GS, '$', nl, nh };
+pub fn setPageModeAbsoluteVerticalPrintPosition(units: u16) [4]u8 {
+    const split_units = splitU16(units);
+    return [_]u8{ GS, '$', split_units.l, split_units.h };
 }
 
 // define downloaded image not implemented yet
@@ -395,8 +414,9 @@ pub const select_hri_characters_printing_position = struct {
 
 /// Sets the left margin using nL and nH.
 /// The left margin is set to [(nL + nH X 256) X (horizontal motion unit)] inches.
-pub fn setLeftMargin(nl: u8, nh: u8) [4]u8 {
-    [_]u8{ GS, 'L', nl, nh };
+pub fn setLeftMargin(units: u16) [4]u8 {
+    const split_units = splitU16(units);
+    [_]u8{ GS, 'L', split_units.l, split_units.h };
 }
 
 /// Sets the horizontal and vertical motion units to approximately
