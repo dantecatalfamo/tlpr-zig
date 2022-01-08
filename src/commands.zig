@@ -104,6 +104,15 @@ pub fn bitImageMode(allocator: mem.Allocator, mode: bit_image_mode, image_data: 
     return mem.concat(allocator, u8, &slices);
 }
 
+pub fn comptimeBitImageMode(mode: bit_image_mode, comptime image_data: []const u8) []u8 {
+    const tall = (mode == .single_density_24 or mode == .double_density_24);
+    const image_width = if (tall) image_data.len / 3 else image_data.len;
+    const nl = @truncate(u8, image_width & 0xFF);
+    const nh = @truncate(u2, image_width >> 8);
+    const preamble = [_]u8{ ESC, '*', @enumToInt(mode), nl, nh };
+    return preamble ++ image_data;
+}
+
 const bit_image_mode = enum(u8) {
     single_density_8 = 0,
     double_density_8 = 1,
@@ -145,12 +154,21 @@ pub const initialize = [_]u8{ ESC, '@' };
 /// • positions specifies the column number for setting a horizontal
 ///   tab position from the beginning of the line.
 /// You can set a maximum of 32 positions.
+/// Caller is responsible for freeing memory.
 pub fn setHorizontalTabPositions(allocator: mem.Allocator, positions: []const u8) ![]u8 {
     if (positions.len > 32) {
         return error.TooManyTabPositions;
     }
     const preamble = [_]u8{ ESC, 'D' };
     return mem.concat(allocator, u8, preamble, positions, .{0});
+}
+
+pub fn comptimeSetHorizontalTabPositions(comptime positions: []const u8) []u8 {
+    if (positions.len > 32) {
+        @compileError("Too many tab positions");
+    }
+    const preamble = [_]u8{ ESC, 'D' };
+    return preamble ++ positions ++ [_]u8{ 0 };
 }
 
 /// Turns emphasized mode on or off
