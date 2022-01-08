@@ -94,16 +94,14 @@ pub fn setPrintPosition(motion_units: u16) [4]u8 {
 // define user-defined character set not implemented yet
 
 /// Caller is responsible for freeing returned memory
-pub fn bitImageMode(allocator: mem.Allocator, mode: bit_image_mode, image_width: u10, image_data: []const u8) ![]u8 {
+pub fn bitImageMode(allocator: mem.Allocator, mode: bit_image_mode, image_data: []const u8) ![]u8 {
+    const tall = (mode == .single24 or mode == .double24);
+    const image_width = if (tall) image_data.len / 3 else image_data.len;
     const nl = @truncate(u8, image_width & 0xFF);
     const nh = @truncate(u2, image_width >> 8);
-    const tall = (mode == .single24 or mode == .double24);
-    const expected_length = image_width * (if (tall) 3 else 1);
-    if (image_data.len != expected_length) {
-        return error.ImageLengthMismatch;
-    }
-    const preamble = [_]u8{ ESC, '*', mode, nl, nh };
-    return mem.concat(allocator, u8, .{ preamble, image_data });
+    const preamble = [_]u8{ ESC, '*', @enumToInt(mode), nl, nh };
+    const slices = [_] []const u8{ &preamble, image_data };
+    return mem.concat(allocator, u8, &slices);
 }
 
 const bit_image_mode = enum(u8) {
