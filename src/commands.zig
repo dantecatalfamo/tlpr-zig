@@ -95,7 +95,7 @@ pub fn setPrintPosition(motion_units: u16) [4]u8 {
 
 /// Caller is responsible for freeing returned memory
 pub fn bitImageMode(allocator: mem.Allocator, mode: bit_image_mode, image_data: []const u8) ![]u8 {
-    const tall = (mode == .single24 or mode == .double24);
+    const tall = (mode == .single_density_24 or mode == .double_density_24);
     const image_width = if (tall) image_data.len / 3 else image_data.len;
     const nl = @truncate(u8, image_width & 0xFF);
     const nh = @truncate(u2, image_width >> 8);
