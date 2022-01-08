@@ -105,10 +105,10 @@ pub fn bitImageMode(allocator: mem.Allocator, mode: bit_image_mode, image_data: 
 }
 
 const bit_image_mode = enum(u8) {
-    single8 = 0,
-    double8 = 1,
-    single24 = 32,
-    double24 = 33,
+    single_density_8 = 0,
+    double_density_8 = 1,
+    single_density_24 = 32,
+    double_density_24 = 33,
 };
 
 /// Turns underline mode on or off
