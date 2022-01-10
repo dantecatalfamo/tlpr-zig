@@ -495,7 +495,7 @@ pub fn selectBarcodeHeight(n: u8) [3]u8 {
 }
 
 /// Selects a barcode system and prints the barcode.
-pub fn printBarcode(allocator: mem.Allocator, code_system: barcode_system, data: []u8) ![]u8 {
+pub fn printBarcode(allocator: mem.Allocator, code_system: barcode_system, data: []const u8) ![]u8 {
     if (!validBarcode(code_system, data)) {
         return error.InvalidBarcode;
     }
@@ -505,7 +505,7 @@ pub fn printBarcode(allocator: mem.Allocator, code_system: barcode_system, data:
 }
 
 /// Selects a barcode system and prints the barcode.
-pub fn comptimePrintBarcode(comptime code_system: barcode_system, comptime data: []u8) []u8 {
+pub fn comptimePrintBarcode(comptime code_system: barcode_system, comptime data: []const u8) []u8 {
     if (!validBarcode(code_system, data)) {
         return error.InvalidBarcode;
     }
@@ -514,7 +514,7 @@ pub fn comptimePrintBarcode(comptime code_system: barcode_system, comptime data:
 }
 
 /// Checks the validity of a barcode according to a system.
-pub fn validBarcode(code_system: barcode_system, data: []u8) bool {
+pub fn validBarcode(code_system: barcode_system, data: []const u8) bool {
     const min_chars = switch(code_system) {
         .upc_a, upc_e => 11,
         .jan13 => 12,
@@ -576,7 +576,7 @@ pub fn validBarcode(code_system: barcode_system, data: []u8) bool {
     }
 }
 
-pub const barcode_system = enum {
+pub const barcode_system = enum(u8) {
     upc_a = 65,
     upc_e = 66,
     /// EAN13
@@ -589,3 +589,49 @@ pub const barcode_system = enum {
     code93 = 72,
     code128 = 73
 };
+
+/// Selects Raster bit-image mode.
+pub fn printRasterBitImage(allocator: mem.Allocator, mode: raster_bit_image_mode, x: u16, y: u16, image_data: []const u8) ![]u8 {
+    const x_split = splitU16(x);
+    const y_split = splitU16(y);
+    const preamble = [_]u8{ GS, 'v', 0, @enumToInt(mode), x_split.l, x_split.h, y_split.l, y_split.h };
+    const slices = [_] []const u8{ &preamble, image_data };
+    return mem.concat(allocator, u8, &slices);
+}
+
+/// Selects Raster bit-image mode.
+pub fn comptimePrintRasterBitImage(mode: raster_bit_image_mode, x: u16, y: u16, image_data: []const u8) []u8 {
+    const x_split = splitU16(x);
+    const y_split = splitU16(y);
+    const preamble = [_]u8{ GS, 'v', 0, @enumToInt(mode), x_split.l, x_split.h, y_split.l, y_split.h };
+    return preamble ++ image_data;
+}
+
+pub const raster_bit_image_mode = enum(u8) {
+    normal = 0,
+    double_width = 1,
+    double_height = 2,
+    quadruple = 3
+};
+
+/// Set the horizontal size of the bar code.
+/// n specifies the bar code width as follows:
+/// |---+----------------------+----------------------------------------------------|
+/// | n | Multli-level Barcode |               Binary-level Barcode                  |
+/// |---+----------------------+-------------------------+--------------------------|
+/// |   |    Module Width (mm) | Thin element width (mm) | Thick element width (mm) |
+/// |---+----------------------+-------------------------+--------------------------|
+/// | 2 |                 0.25 |                    0.25 |                    0.625 |
+/// | 3 |                0.375 |                   0.375 |                      1.0 |
+/// | 4 |                  0.5 |                     0.5 |                     1.25 |
+/// | 5 |                0.625 |                   0.625 |                    1.625 |
+/// | 6 |                 0.75 |                    0.75 |                    1.875 |
+/// |---+----------------------+-------------------------+--------------------------|
+/// . Multi-level bar codes are as follows:
+///   UPC-A, UPC-E, JAN13 (EAN13), JAN8 (EAN8), CODE93, CODE128
+/// . Binary-level bar codes are as follows:
+///   CODE39, ITF, CODABAR
+/// Default n = 3
+pub fn setBarCodeWidth(n: u8) [3]u8 {
+    return [_]u8{ GS, 'w', n };
+}
