@@ -160,7 +160,8 @@ pub fn setHorizontalTabPositions(allocator: mem.Allocator, positions: []const u8
         return error.TooManyTabPositions;
     }
     const preamble = [_]u8{ ESC, 'D' };
-    return mem.concat(allocator, u8, preamble, positions, .{0});
+    const slices = [_] []const u8{ &preamble, positions, &[_]u8{ 0 } };
+    return mem.concat(allocator, u8, &slices);
 }
 
 pub fn comptimeSetHorizontalTabPositions(comptime positions: []const u8) []u8 {
@@ -484,4 +485,107 @@ pub const execute_macro_mode = enum {
 pub const hri_font = struct {
     pub const font_a = [_]u8{ GS, 'f', 0 };
     pub const font_b = [_]u8{ GS, 'f', 1 };
+};
+
+/// Selects the height of the bar code.
+/// n specifies the number of dots in the vertical direction.
+/// Default n = 162
+pub fn selectBarcodeHeight(n: u8) [3]u8 {
+    return [_]u8{ GS, 'h', n };
+}
+
+/// Selects a barcode system and prints the barcode.
+pub fn printBarcode(allocator: mem.Allocator, code_system: barcode_system, data: []u8) ![]u8 {
+    if (!validBarcode(code_system, data)) {
+        return error.InvalidBarcode;
+    }
+    const preamble = [_]u8{ GS, 'k', data.len };
+    const slices = [_] []const u8{ &preamble, data };
+    return mem.concat(allocator, u8, &slices);
+}
+
+/// Selects a barcode system and prints the barcode.
+pub fn comptimePrintBarcode(comptime code_system: barcode_system, comptime data: []u8) []u8 {
+    if (!validBarcode(code_system, data)) {
+        return error.InvalidBarcode;
+    }
+    const preamble = [_]u8{ GS, 'k', data.len };
+    return preamble ++ data;
+}
+
+/// Checks the validity of a barcode according to a system.
+pub fn validBarcode(code_system: barcode_system, data: []u8) bool {
+    const min_chars = switch(code_system) {
+        .upc_a, upc_e => 11,
+        .jan13 => 12,
+        .jan8 => 7,
+        .code39, .itf, .codabar, .code93 => 1,
+        .code128 => 2
+    };
+    const max_chars = switch(code_system) {
+        .upc_a, .upc_e => 12,
+        .jan13 => 13,
+        .jan8 => 8,
+        .code39, .itf, .codabar, .code93, .code128 => 255
+    };
+    if (data.len < min_chars or data.len > max_chars) {
+        return false;
+    }
+    if (code_system == .itf and data.len % 2 != 0) {
+        return false;
+    }
+    switch (code_system) {
+        .upc_a, .upc_e, .jan13, .jan8, .itf => {
+            for (data) |char| {
+                if (char < 48 or char > 57) {
+                    return false;
+                }
+            }
+            return true;
+        },
+        .code39 => {
+            for (data) |char| {
+                switch (char) {
+                    32, 36, 37, 42, 43, 45...57, 65...90 => {},
+                    else => {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        },
+        .codabar => {
+            for (data) |char| {
+                switch (char) {
+                    36, 43, 45...57, 65...68, 58 => {},
+                    else => {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        },
+        .code93, .code128 => {
+            for (data) |char| {
+                if (char > 127) {
+                    return false;
+                }
+                return true;
+            }
+        }
+    }
+}
+
+pub const barcode_system = enum {
+    upc_a = 65,
+    upc_e = 66,
+    /// EAN13
+    jan13 = 67,
+    /// EAN8
+    jan8 = 68,
+    code39 = 69,
+    itf = 70,
+    codabar = 71,
+    code93 = 72,
+    code128 = 73
 };
