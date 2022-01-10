@@ -104,13 +104,17 @@ pub fn bitImageMode(allocator: mem.Allocator, mode: bit_image_mode, image_data: 
     return mem.concat(allocator, u8, &slices);
 }
 
-pub fn comptimeBitImageMode(mode: bit_image_mode, comptime image_data: []const u8) []u8 {
+pub fn comptimeBitImageMode(comptime mode: bit_image_mode, comptime image_data: []const u8) []const u8 {
     const tall = (mode == .single_density_24 or mode == .double_density_24);
     const image_width = if (tall) image_data.len / 3 else image_data.len;
     const nl = @truncate(u8, image_width & 0xFF);
     const nh = @truncate(u2, image_width >> 8);
     const preamble = [_]u8{ ESC, '*', @enumToInt(mode), nl, nh };
     return preamble ++ image_data;
+}
+
+test "comptime bit image" {
+    _ = comptime comptimeBitImageMode(.single_density_8, &[_]u8{ 1, 2, 3, 4 });
 }
 
 const bit_image_mode = enum(u8) {
@@ -164,12 +168,18 @@ pub fn setHorizontalTabPositions(allocator: mem.Allocator, positions: []const u8
     return mem.concat(allocator, u8, &slices);
 }
 
-pub fn comptimeSetHorizontalTabPositions(comptime positions: []const u8) []u8 {
+pub fn comptimeSetHorizontalTabPositions(comptime positions: []const u8) []const u8 {
     if (positions.len > 32) {
         @compileError("Too many tab positions");
     }
     const preamble = [_]u8{ ESC, 'D' };
-    return preamble ++ positions ++ [_]u8{ 0 };
+    const null_byte = [_]u8{ 0 };
+    return preamble ++ positions ++ null_byte;
+}
+
+test "comptime tabs" {
+    comptime var a = [_]u8{ 1, 2, 3 };
+    _ = comptime comptimeSetHorizontalTabPositions(&a);
 }
 
 /// Turns emphasized mode on or off
@@ -530,62 +540,60 @@ pub fn selectBarcodeHeight(n: u8) [3]u8 {
 
 /// Selects a barcode system and prints the barcode.
 pub fn printBarcode(allocator: mem.Allocator, code_system: barcode_system, data: []const u8) ![]u8 {
-    if (!validBarcode(code_system, data)) {
-        return error.InvalidBarcode;
-    }
-    const preamble = [_]u8{ GS, 'k', data.len };
+    try validBarcode(code_system, data);
+    const preamble = [_]u8{ GS, 'k', data.len, @enumToInt(code_system) };
     const slices = [_] []const u8{ &preamble, data };
     return mem.concat(allocator, u8, &slices);
 }
 
 /// Selects a barcode system and prints the barcode.
-pub fn comptimePrintBarcode(comptime code_system: barcode_system, comptime data: []const u8) []u8 {
-    if (!validBarcode(code_system, data)) {
-        return error.InvalidBarcode;
-    }
-    const preamble = [_]u8{ GS, 'k', data.len };
+pub fn comptimePrintBarcode(comptime code_system: barcode_system, comptime data: []const u8) []const u8 {
+    validBarcode(code_system, data) catch |err| @compileError(@errorName(err));
+    const preamble = [_]u8{ GS, 'k', data.len, @enumToInt(code_system) };
     return preamble ++ data;
 }
 
+test "comptime barcode" {
+    _ = comptime comptimePrintBarcode(.upc_a, "012345789011");
+}
+
 /// Checks the validity of a barcode according to a system.
-pub fn validBarcode(code_system: barcode_system, data: []const u8) bool {
-    const min_chars = switch(code_system) {
+pub fn validBarcode(code_system: barcode_system, data: []const u8) !void {
+    const min_chars: u8 = switch(code_system) {
         .upc_a, .upc_e => 11,
         .jan13 => 12,
         .jan8 => 7,
         .code39, .itf, .codabar, .code93 => 1,
         .code128 => 2
     };
-    const max_chars = switch(code_system) {
+    const max_chars: u8 = switch(code_system) {
         .upc_a, .upc_e => 12,
         .jan13 => 13,
         .jan8 => 8,
         .code39, .itf, .codabar, .code93, .code128 => 255
     };
     if (data.len < min_chars or data.len > max_chars) {
-        return false;
+        return error.InvalidLength;
     }
     if (code_system == .itf and data.len % 2 != 0) {
-        return false;
+        return error.InvalidLength;
     }
     switch (code_system) {
         .upc_a, .upc_e, .jan13, .jan8, .itf => {
             for (data) |char| {
                 if (char < 48 or char > 57) {
-                    return false;
+                    return error.InvalidCharacter;
                 }
             }
-            return true;
         },
         .code39 => {
             for (data) |char| {
                 switch (char) {
                     32, 36, 37, 42, 43, 45...57, 65...90 => {},
                     else => {
-                        return false;
+                        return error.InvalidCharacter;
                     }
                 }
-                return true;
             }
         },
         .codabar => {
@@ -593,18 +601,16 @@ pub fn validBarcode(code_system: barcode_system, data: []const u8) bool {
                 switch (char) {
                     36, 43, 45...57, 65...68, 58 => {},
                     else => {
-                        return false;
+                        return error.InvalidCharacter;
                     }
                 }
-                return true;
             }
         },
         .code93, .code128 => {
             for (data) |char| {
                 if (char > 127) {
-                    return false;
+                    return error.InvalidCharacter;
                 }
-                return true;
             }
         }
     }
@@ -634,11 +640,15 @@ pub fn printRasterBitImage(allocator: mem.Allocator, mode: raster_bit_image_mode
 }
 
 /// Selects Raster bit-image mode.
-pub fn comptimePrintRasterBitImage(mode: raster_bit_image_mode, x: u16, y: u16, image_data: []const u8) []u8 {
+pub fn comptimePrintRasterBitImage(comptime mode: raster_bit_image_mode, comptime x: u16, comptime y: u16, image_data: []const u8) []const u8 {
     const x_split = splitU16(x);
     const y_split = splitU16(y);
     const preamble = [_]u8{ GS, 'v', 0, @enumToInt(mode), x_split.l, x_split.h, y_split.l, y_split.h };
     return preamble ++ image_data;
+}
+
+test "comptime raster bit image" {
+    _ = comptime comptimePrintRasterBitImage(.normal, 1, 1, &[_]u8{ 0xFF });
 }
 
 pub const raster_bit_image_mode = enum(u8) {
