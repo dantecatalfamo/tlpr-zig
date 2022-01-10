@@ -516,7 +516,7 @@ pub fn comptimePrintBarcode(comptime code_system: barcode_system, comptime data:
 /// Checks the validity of a barcode according to a system.
 pub fn validBarcode(code_system: barcode_system, data: []const u8) bool {
     const min_chars = switch(code_system) {
-        .upc_a, upc_e => 11,
+        .upc_a, .upc_e => 11,
         .jan13 => 12,
         .jan8 => 7,
         .code39, .itf, .codabar, .code93 => 1,
@@ -638,7 +638,7 @@ pub fn setBarCodeWidth(n: u8) [3]u8 {
 
 /// Sets the print mode for Kanji characters.
 pub fn setaKanjiCharacterPrintModes(modes: kanji_characters_modes) [3]u8 {
-    n = 0;
+    var n = 0;
     if (modes.double_width) {
         n |= 1 << 2;
     }
