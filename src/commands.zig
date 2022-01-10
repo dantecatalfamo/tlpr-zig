@@ -617,7 +617,7 @@ pub const raster_bit_image_mode = enum(u8) {
 /// Set the horizontal size of the bar code.
 /// n specifies the bar code width as follows:
 /// |---+----------------------+----------------------------------------------------|
-/// | n | Multli-level Barcode |               Binary-level Barcode                  |
+/// | n | Multli-level Barcode |               Binary-level Barcode                 |
 /// |---+----------------------+-------------------------+--------------------------|
 /// |   |    Module Width (mm) | Thin element width (mm) | Thick element width (mm) |
 /// |---+----------------------+-------------------------+--------------------------|
@@ -669,7 +669,7 @@ pub const kanji_mode = struct {
     pub const off = [_]u8{ FS, '.' };
 };
 
-// Define user-defined Kanji characters not defined yet.
+// Define user-defined Kanji characters not implemented yet.
 
 /// Sets left- and right-side Kanji character spacing n1 and n2, respectively.
 /// • When the printer model used supports GS P, the left-side character spacing is [n1
