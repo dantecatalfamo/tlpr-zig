@@ -319,7 +319,7 @@ pub fn printAndFeedLines(lines: u8) [3]u8 {
 /// Select character code table.
 pub const character_code_table = struct {
     ///[U.S.A.Standard Europe]
-    pub const PC437 = [_]u8{ ESC, 't', 0 };
+    pub const pc437 = [_]u8{ ESC, 't', 0 };
     pub const katakana = [_]u8{ ESC, 't', 1 };
     /// Multilingual
     pub const pc850 = [_]u8{ ESC, 't', 2 };
@@ -350,7 +350,7 @@ pub const upside_down_mode = struct {
     pub const enable = [_]u8{ ESC, '{', 1 };
 };
 
-pub fn printNvBitimage(image: u8, mode: nv_bit_image_mode) [4]u8 {
+pub fn printNvBitImage(image: u8, mode: nv_bit_image_mode) [4]u8 {
     return [_]u8{ FS, 'p', image, @enumToInt(mode) };
 }
 
@@ -361,7 +361,41 @@ pub const nv_bit_image_mode = enum(u2) {
     quadruple
 };
 
-// Define NV bit image is not implemented yet
+/// Define the NV bit image specified by n.
+/// This command cancels all NV bit images that have already been
+/// defined by this command.The printer can not redefine only one of
+/// several data definitions previously defined. In this case, all
+/// data needs to be sent again.
+/// Caller is responsible for freeing memory.
+pub fn defineNvBitImages(allocator: mem.Allocator, images: []nv_bit_image) ![]u8 {
+    if (images.len > 255) {
+        return error.TooManyImages;
+    }
+
+    var output = std.ArrayList(u8).init(allocator);
+    const preamble = [_]u8{ FS, 'q', images.len };
+    try output.appendSlice(&preamble);
+
+    for (images) |image| {
+        if (image.x > 1023 or image.y > 288) {
+            return error.InvalidImage;
+        }
+        const x_split = splitU16(image.x);
+        const y_split = splitU16(image.y);
+        const image_meta = [_]u8{ x_split.l, x_split.h, y_split.l, y_split.h };
+        try output.appendSlice(image_meta);
+        try output.appendSlice(image.data);
+    }
+    return output.toOwnedSlice();
+}
+
+pub const nv_bit_image = struct {
+    /// 0 <= x <= 1023
+    x: u16,
+    /// 0 <= y <= 288
+    y: u16,
+    data: []u8
+};
 
 pub fn selectCharacterSize(height: u3, width: u3) [3]u8 {
     var n: u8 = 0;
