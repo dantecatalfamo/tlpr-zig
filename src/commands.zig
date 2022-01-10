@@ -424,16 +424,18 @@ pub fn setPageModeAbsoluteVerticalPrintPosition(units: u16) [4]u8 {
 }
 
 // define downloaded image not implemented yet
-// /// Defines a downloaded bit image with the number of dots specified by x and y.
-// /// ·x indicates the number of dots in the horizontal direction.
-// /// ·y indicates he number of dots in the vertical direction.
-// /// Caller is responsible for freeing memory
-// pub fn defineDownloadedBitImage(allocator: mem.Allocator, width: u8, height: u6, dots: []const u8) ![]u8 {
-//     if (height > 48) {
-//         return error.HeightTooLarge;
-//     }
-//
-// }
+/// Defines a downloaded bit image with the number of dots specified by x and y.
+/// ·x * 8 indicates the number of dots in the horizontal direction.
+/// ·y * 8 indicates he number of dots in the vertical direction.
+/// Caller is responsible for freeing memory
+pub fn defineDownloadedBitImage(allocator: mem.Allocator, x: u8, y: u6, dots: []const u8) ![]u8 {
+    if (x < 1 or x > 48 or y < 1 or y > 48) {
+        return error.ImageTooLarge;
+    }
+    const preamble = [_]u8{ GS, '*', x, y };
+    const slices = [_] []const u8{ &preamble, dots };
+    return mem.concat(allocator, u8, &slices);
+}
 
 pub const print_downloaded_bit_image = struct {
     pub const normal = [_]u8{ GS, '/', 0 };
