@@ -428,7 +428,7 @@ pub fn setPageModeAbsoluteVerticalPrintPosition(units: u16) [4]u8 {
 /// ·x * 8 indicates the number of dots in the horizontal direction.
 /// ·y * 8 indicates he number of dots in the vertical direction.
 /// Caller is responsible for freeing memory
-pub fn defineDownloadedBitImage(allocator: mem.Allocator, x: u8, y: u6, dots: []const u8) ![]u8 {
+pub fn defineDownloadedBitImage(allocator: mem.Allocator, x: u8, y: u8, dots: []const u8) ![]u8 {
     if (x < 1 or x > 48 or y < 1 or y > 48) {
         return error.ImageTooLarge;
     }
