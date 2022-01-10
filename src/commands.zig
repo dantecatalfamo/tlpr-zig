@@ -635,3 +635,52 @@ pub const raster_bit_image_mode = enum(u8) {
 pub fn setBarCodeWidth(n: u8) [3]u8 {
     return [_]u8{ GS, 'w', n };
 }
+
+/// Sets the print mode for Kanji characters.
+pub fn setaKanjiCharacterPrintModes(modes: kanji_characters_modes) [3]u8 {
+    n = 0;
+    if (modes.double_width) {
+        n |= 1 << 2;
+    }
+    if (modes.double_height) {
+        n |= 1 << 3;
+    }
+    if (modes.underline) {
+        n |= 1 << 7;
+    }
+    return [_]u8{ FS, '!', n };
+}
+
+pub const kanji_characters_modes = struct {
+    double_width: bool,
+    double_height: bool,
+    underline: bool
+};
+
+pub const kanji_underline_mode = struct {
+    pub const none = [_]u8{ FS, '-', 0 };
+    pub const one = [_]u8{ FS, '-', 1 };
+    pub const two = [_]u8{ FS, '-', 2 };
+};
+
+/// Selects or cancels kanji character mode.
+pub const kanji_mode = struct {
+    pub const on = [_]u8{ FS, '&' };
+    pub const off = [_]u8{ FS, '.' };
+};
+
+// Define user-defined Kanji characters not defined yet.
+
+/// Sets left- and right-side Kanji character spacing n1 and n2, respectively.
+/// • When the printer model used supports GS P, the left-side character spacing is [n1
+///   ╳ horizontal or vertical motion units], and the right-side character spacing is
+///   [ n2 ╳ horizontal or vertical motion units].
+pub fn setLeftAndRightKanjiCharacterSpacing(left: u8, right: u8) [4]u8 {
+    return [_]u8{ FS, 'S', left, right };
+}
+
+/// Turns quadruple-size mode on or off for Kanji characters.
+pub const kanji_quadruple_size_mode = struct {
+    pub const off = [_]u8{ FS, 'W', 0 };
+    pub const on = [_]u8{ FS, 'W', 1 };
+};
