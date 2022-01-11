@@ -2,9 +2,11 @@ const std = @import("std");
 const zigimg = @import("zigimg");
 const commands = @import("./commands.zig");
 
-pub fn imageToBitRaster(allocator: std.mem.Allocator, path: []const u8, threshold: u8) ![]u8 {
+pub fn imageToBitRaster(allocator: std.mem.Allocator, path: []const u8, threshold: Threshold) ![]u8 {
     const image = try zigimg.Image.fromFilePath(allocator, path);
     defer image.deinit();
+
+    var rng = std.rand.DefaultPrng.init(0).random();
 
     if (image.pixels == null) {
         return error.InvalidImage;
@@ -29,23 +31,40 @@ pub fn imageToBitRaster(allocator: std.mem.Allocator, path: []const u8, threshol
 
     var iter = image.iterator();
 
-    var byte: u64 = 0;
-    var bit: u64 = 0;
+    var input_bit: u64 = 0;
     var output_bit: u64 = 0;
 
-    while (iter.next()) |color| : (bit += 1) {
-        if (extra_bits != 8 and bit != 0 and bit % width == 0) {
+    while (iter.next()) |color| : (input_bit += 1) {
+        if (extra_bits != 8 and input_bit != 0 and input_bit % width == 0) {
             output_bit += extra_bits;
         }
+        var th: u8 = blk: {
+            if (threshold == .value) {
+                break :blk threshold.value;
+            }
+            const max = threshold.range.max;
+            const min = threshold.range.min;
+            const diff = max - min;
+            const rand = rng.int(u8);
+            break :blk (rand % diff) + min;
+        };
         const int_val = color.toIntegerColor8();
         const avg = @truncate(u8, (@as(u16, int_val.R) + int_val.G + int_val.B) / 3);
-        byte = output_bit / 8;
-        const shift = @truncate(u3, 7 - (output_bit % 8));
-        const dark = avg < threshold;
+        const dark = avg < th;
         const bitcolor: u8 = if (dark) 1 else 0;
+        const byte = output_bit / 8;
+        const shift = @truncate(u3, 7 - (output_bit % 8));
         bytes[byte] |= bitcolor << shift;
         output_bit += 1;
     }
 
     return try commands.printRasterBitImage(allocator, .normal, @truncate(u16, byte_width), @truncate(u16, height), bytes);
 }
+
+pub const Threshold = union(enum) {
+    value: u8,
+    range: struct {
+        min: u8,
+        max: u8,
+    },
+};

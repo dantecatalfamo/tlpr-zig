@@ -3,6 +3,7 @@ const os = std.os;
 const mem = std.mem;
 const commands = @import("./commands.zig");
 const raster_image = @import("./raster_image.zig");
+const Threshold = raster_image.Threshold;
 
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -20,7 +21,7 @@ pub fn main() anyerror!void {
     var reverse_black_white = false;
     var no_initialize = false;
     var image_path: ?[]u8 = null;
-    var image_threshold: u8 = 150;
+    var image_threshold: Threshold = .{ .value = 150 };
     var read_buffer: [4086]u8 = undefined;
     const stdin = std.io.getStdIn().reader();
 
@@ -88,7 +89,28 @@ pub fn main() anyerror!void {
             if (arg_idx + 1 == args.len) {
                 usage();
             }
-            image_threshold = try std.fmt.parseInt(u8, args[arg_idx + 1], 10);
+            const threshold_input = args[arg_idx + 1];
+            if (mem.indexOf(u8, threshold_input, "-") != null) {
+                var split = mem.split(u8, threshold_input, "-");
+                const min_input = split.next().?;
+                const max_input = split.next().?;
+                const min = try std.fmt.parseInt(u8, min_input, 10);
+                const max = try std.fmt.parseInt(u8, max_input, 10);
+                if (min >= max) {
+                    usage();
+                }
+                image_threshold = .{
+                    .range = .{
+                        .min = min,
+                        .max = max,
+                    },
+                };
+            } else {
+                image_threshold = .{
+                    .value = try std.fmt.parseInt(u8, threshold_input, 10)
+                };
+            }
+
             arg_idx += 1;
         }
     }
@@ -196,7 +218,8 @@ fn usage() noreturn {
         \\    -r reverse black/white printing
         \\    -n don't initialize the printer when connecting
         \\    --image <path> print an image
-        \\    --threshold <0-255> image b/w threshold (default 150)
+        \\    --threshold <value> image b/w threshold (default 150).
+        \\    --threshold <min-max> image b/w threshold, randomized between min-max per pixel
     ;
     stderr.print("{s}\n", .{usage_text}) catch unreachable;
     os.exit(1);
