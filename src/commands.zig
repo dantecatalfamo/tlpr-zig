@@ -636,7 +636,7 @@ pub const barcode_system = enum(u8) {
 pub fn printRasterBitImage(allocator: mem.Allocator, mode: raster_bit_image_mode, x: u16, y: u16, image_data: []const u8) ![]u8 {
     const x_split = splitU16(x);
     const y_split = splitU16(y);
-    const preamble = [_]u8{ GS, 'v', 0, @enumToInt(mode), x_split.l, x_split.h, y_split.l, y_split.h };
+    const preamble = [_]u8{ GS, 'v', '0', @enumToInt(mode), x_split.l, x_split.h, y_split.l, y_split.h };
     const slices = [_] []const u8{ &preamble, image_data };
     return mem.concat(allocator, u8, &slices);
 }
@@ -645,7 +645,7 @@ pub fn printRasterBitImage(allocator: mem.Allocator, mode: raster_bit_image_mode
 pub fn comptimePrintRasterBitImage(comptime mode: raster_bit_image_mode, comptime x: u16, comptime y: u16, image_data: []const u8) []const u8 {
     const x_split = splitU16(x);
     const y_split = splitU16(y);
-    const preamble = [_]u8{ GS, 'v', 0, @enumToInt(mode), x_split.l, x_split.h, y_split.l, y_split.h };
+    const preamble = [_]u8{ GS, 'v', '0', @enumToInt(mode), x_split.l, x_split.h, y_split.l, y_split.h };
     return preamble ++ image_data;
 }
 
