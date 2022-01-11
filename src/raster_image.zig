@@ -34,7 +34,7 @@ pub fn imageToBitRaster(allocator: std.mem.Allocator, path: []const u8, threshol
     var output_bit: u64 = 0;
 
     while (iter.next()) |color| : (bit += 1) {
-        if (bit != 0 and bit % width == 0) {
+        if (extra_bits != 8 and bit != 0 and bit % width == 0) {
             output_bit += extra_bits;
         }
         const int_val = color.toIntegerColor8();
