@@ -430,7 +430,6 @@ pub fn setPageModeAbsoluteVerticalPrintPosition(units: u16) [4]u8 {
     return [_]u8{ GS, '$', split_units.l, split_units.h };
 }
 
-// define downloaded image not implemented yet
 /// Defines a downloaded bit image with the number of dots specified by x and y.
 /// ·x * 8 indicates the number of dots in the horizontal direction.
 /// ·y * 8 indicates he number of dots in the vertical direction.
