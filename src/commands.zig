@@ -93,6 +93,13 @@ pub fn setPrintPosition(motion_units: u16) [4]u8 {
 // select user-defined character set not implemented yet
 // define user-defined character set not implemented yet
 
+/// Bit image prints bits vertically with the lsb at the bottom.
+/// The 8 modes print a single line across
+/// d1 d2 d3 ->
+/// and the 24 modes print three down and then across
+/// d1 d4 d7
+/// d2 d5 d8 ->
+/// d3 d6 d9
 /// Caller is responsible for freeing returned memory
 pub fn bitImageMode(allocator: mem.Allocator, mode: bit_image_mode, image_data: []const u8) ![]u8 {
     const tall = (mode == .single_density_24 or mode == .double_density_24);
