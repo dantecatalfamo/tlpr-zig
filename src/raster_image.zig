@@ -14,6 +14,11 @@ pub fn imageToBitRaster(allocator: std.mem.Allocator, path: []const u8, threshol
     const height = image.height;
     const byte_width = width / 8 + @as(u8, if (width % 8 == 0) 0 else 1);
     const extra_bits = 8 - width % 8;
+
+    if (width > std.math.maxInt(u16) or height > std.math.maxInt(u16)) {
+        return error.ImageTooLarge;
+    }
+
     var bytes = try allocator.alloc(u8, byte_width * height);
     defer allocator.free(bytes);
 
