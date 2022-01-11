@@ -2,7 +2,6 @@ const std = @import("std");
 const os = std.os;
 const mem = std.mem;
 const commands = @import("./commands.zig");
-const smile = @import("./smile.zig").smile;
 const raster_image = @import("./raster_image.zig");
 
 pub fn main() anyerror!void {
