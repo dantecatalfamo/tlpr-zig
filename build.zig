@@ -12,6 +12,7 @@ pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
 
     const exe = b.addExecutable("tlpr-zig", "src/main.zig");
+    exe.addPackagePath("zigimg", "zigimg/zigimg.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.install();

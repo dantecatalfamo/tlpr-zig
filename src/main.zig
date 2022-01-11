@@ -2,6 +2,8 @@ const std = @import("std");
 const os = std.os;
 const mem = std.mem;
 const commands = @import("./commands.zig");
+const smile = @import("./smile.zig").smile;
+const raster_image = @import("./raster_image.zig");
 
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -18,6 +20,7 @@ pub fn main() anyerror!void {
     var char_width: ?u4 = null;
     var reverse_black_white = false;
     var no_initialize = false;
+    var image_path: ?[]u8 = null;
     var read_buffer: [4086]u8 = undefined;
     const stdin = std.io.getStdIn().reader();
 
@@ -75,6 +78,12 @@ pub fn main() anyerror!void {
             reverse_black_white = true;
         } else if (mem.eql(u8, "-n", arg)) {
             no_initialize = true;
+        } else if (mem.eql(u8, "--image", arg)) {
+            if (arg_idx + 1 == args.len) {
+                usage();
+            }
+            image_path = args[arg_idx + 1];
+            arg_idx += 1;
         }
     }
 
@@ -145,6 +154,12 @@ pub fn main() anyerror!void {
         try printer.writeAll(&commands.reverse_white_black_mode.on);
     }
 
+    if (image_path) |path| {
+        const image = try raster_image.imageToBitRaster(allocator, path);
+        defer allocator.free(image);
+        try printer.writeAll(image);
+    }
+
     while (true) {
         const n = try stdin.read(read_buffer[0..]);
         if (n == 0) { break; }
@@ -174,6 +189,7 @@ fn usage() noreturn {
         \\    --width <1-8> select character width
         \\    -r reverse black/white printing
         \\    -n don't initialize the printer when connecting
+        \\    --image <path> print an image
     ;
     stderr.print("{s}\n", .{usage_text}) catch unreachable;
     os.exit(1);
