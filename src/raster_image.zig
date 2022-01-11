@@ -2,9 +2,7 @@ const std = @import("std");
 const zigimg = @import("zigimg");
 const commands = @import("./commands.zig");
 
-pub const threshold: u8 = 150;
-
-pub fn imageToBitRaster(allocator: std.mem.Allocator, path: []const u8) ![]u8 {
+pub fn imageToBitRaster(allocator: std.mem.Allocator, path: []const u8, threshold: u8) ![]u8 {
     const image = try zigimg.Image.fromFilePath(allocator, path);
     defer image.deinit();
 

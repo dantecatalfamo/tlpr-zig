@@ -21,6 +21,7 @@ pub fn main() anyerror!void {
     var reverse_black_white = false;
     var no_initialize = false;
     var image_path: ?[]u8 = null;
+    var image_threshold: u8 = 150;
     var read_buffer: [4086]u8 = undefined;
     const stdin = std.io.getStdIn().reader();
 
@@ -83,6 +84,12 @@ pub fn main() anyerror!void {
                 usage();
             }
             image_path = args[arg_idx + 1];
+            arg_idx += 1;
+        } else if (mem.eql(u8, "--threshold", arg)) {
+            if (arg_idx + 1 == args.len) {
+                usage();
+            }
+            image_threshold = try std.fmt.parseInt(u8, args[arg_idx + 1], 10);
             arg_idx += 1;
         }
     }
@@ -155,7 +162,7 @@ pub fn main() anyerror!void {
     }
 
     if (image_path) |path| {
-        const image = try raster_image.imageToBitRaster(allocator, path);
+        const image = try raster_image.imageToBitRaster(allocator, path, image_threshold);
         defer allocator.free(image);
         try printer.writeAll(image);
     }
@@ -190,6 +197,7 @@ fn usage() noreturn {
         \\    -r reverse black/white printing
         \\    -n don't initialize the printer when connecting
         \\    --image <path> print an image
+        \\    --threshold <0-255> image b/w threshold (default 150)
     ;
     stderr.print("{s}\n", .{usage_text}) catch unreachable;
     os.exit(1);
