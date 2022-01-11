@@ -633,6 +633,12 @@ pub const barcode_system = enum(u8) {
 };
 
 /// Selects Raster bit-image mode.
+/// Raster images are printed (dn is a byte)
+/// d1{7|6|5|4|3|2|1|0} d2{7|6|5|4|3|2|1|0} d3{7|6|5|4|3|2|1|0}
+/// d4{7|6|5|4|3|2|1|0} d5{7|6|5|4|3|2|1|0} d6{7|6|5|4|3|2|1|0}
+/// d7{7|6|5|4|3|2|1|0} d8{7|6|5|4|3|2|1|0} d9{7|6|5|4|3|2|1|0}
+/// So technically x = horizontal bits / 8
+/// Where y is just the nuber of vertical bits
 pub fn printRasterBitImage(allocator: mem.Allocator, mode: raster_bit_image_mode, x: u16, y: u16, image_data: []const u8) ![]u8 {
     const x_split = splitU16(x);
     const y_split = splitU16(y);
