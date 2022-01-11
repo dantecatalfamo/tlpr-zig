@@ -1,5 +1,11 @@
 # tlpr-zig
 
+## Library
+
+Most ESC/POS commands are implemented in `src/commands`.
+
+## CLI
+
 ```
 usage: tlpr --ip <ip> [options]
     Thermal Line printer application.
