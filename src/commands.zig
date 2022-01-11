@@ -549,7 +549,7 @@ pub fn selectBarcodeHeight(n: u8) [3]u8 {
 /// Selects a barcode system and prints the barcode.
 pub fn printBarcode(allocator: mem.Allocator, code_system: barcode_system, data: []const u8) ![]u8 {
     try validBarcode(code_system, data);
-    const preamble = [_]u8{ GS, 'k', data.len, @enumToInt(code_system) };
+    const preamble = [_]u8{ GS, 'k', @enumToInt(code_system), @truncate(u8, data.len) };
     const slices = [_] []const u8{ &preamble, data };
     return mem.concat(allocator, u8, &slices);
 }
@@ -557,7 +557,7 @@ pub fn printBarcode(allocator: mem.Allocator, code_system: barcode_system, data:
 /// Selects a barcode system and prints the barcode.
 pub fn comptimePrintBarcode(comptime code_system: barcode_system, comptime data: []const u8) []const u8 {
     validBarcode(code_system, data) catch |err| @compileError(@errorName(err));
-    const preamble = [_]u8{ GS, 'k', data.len, @enumToInt(code_system) };
+    const preamble = [_]u8{ GS, 'k', @enumToInt(code_system), @truncate(u8, data.len) };
     return preamble ++ data;
 }
 
