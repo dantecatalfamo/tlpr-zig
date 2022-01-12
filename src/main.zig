@@ -203,7 +203,7 @@ fn usage() noreturn {
     const stderr = std.io.getStdErr().writer();
     const usage_text =
         \\usage: tlpr --ip <ip> [options]
-        \\    Thermal Line printer application.
+        \\    Thermal Line Printer application.
         \\    Prints stdin through thermal printer.
         \\
         \\    -c cut paper after printing.

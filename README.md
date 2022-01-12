@@ -8,7 +8,7 @@ Most ESC/POS commands are implemented in `src/commands`.
 
 ```
 usage: tlpr --ip <ip> [options]
-    Thermal Line printer application.
+    Thermal Line Printer application.
     Prints stdin through thermal printer.
 
     -c cut paper after printing.
