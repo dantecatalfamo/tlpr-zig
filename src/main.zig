@@ -218,7 +218,7 @@ fn usage() noreturn {
         \\    -r reverse black/white printing
         \\    -n don't initialize the printer when connecting
         \\    --image <path> print an image
-        \\    --threshold <value> image b/w threshold (default 150).
+        \\    --threshold <value> image b/w threshold, 0-255 (default 150).
         \\    --threshold <min-max> image b/w threshold, randomized between min-max per pixel
     ;
     stderr.print("{s}\n", .{usage_text}) catch unreachable;
