@@ -2,7 +2,7 @@
 
 ## Library
 
-Most ESC/POS commands are implemented in `src/commands`.
+Most ESC/POS commands are implemented in `src/commands.zig`.
 
 ## CLI
 
