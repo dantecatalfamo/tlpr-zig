@@ -38,7 +38,7 @@ pub fn imageToBitRaster(allocator: std.mem.Allocator, path: []const u8, threshol
         if (extra_bits != 8 and input_bit != 0 and input_bit % width == 0) {
             output_bit += extra_bits;
         }
-        var th: u8 = blk: {
+        const th: u8 = blk: {
             if (threshold == .value) {
                 break :blk threshold.value;
             }
