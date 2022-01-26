@@ -9,6 +9,7 @@ pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var allocator = gpa.allocator();
     defer _ = gpa.deinit();
+
     var ip: ?[]u8 = null;
     var cut = false;
     var justify: ?[]u8 = null;
@@ -23,7 +24,12 @@ pub fn main() anyerror!void {
     var image_path: ?[]u8 = null;
     var image_threshold: Threshold = .{ .value = 150 };
     var read_buffer: [4086]u8 = undefined;
+    var output_stdout = false;
+
+    var printer: Printer = undefined;
+
     const stdin = std.io.getStdIn().reader();
+    const stdout = std.io.getStdOut().writer();
 
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
@@ -112,17 +118,25 @@ pub fn main() anyerror!void {
             }
 
             arg_idx += 1;
+        } else if (mem.eql(u8, "--stdout", arg)) {
+            output_stdout = true;
         }
     }
 
 
-    if (ip == null) {
+    if (ip == null and output_stdout == false) {
         usage();
     }
 
-    const addr = try std.net.Address.resolveIp(ip.?, 9100);
-    const stream = try std.net.tcpConnectToAddress(addr);
-    const printer = stream.writer();
+    if (output_stdout) {
+        printer = Printer{ .file = stdout };
+    } else {
+        printer = blk: {
+            const addr = try std.net.Address.resolveIp(ip.?, 9100);
+            const stream = try std.net.tcpConnectToAddress(addr);
+            break :blk Printer{ .socket = stream.writer() };
+        };
+    }
 
     if (!no_initialize) {
         try printer.writeAll(&commands.initialize);
@@ -191,7 +205,7 @@ pub fn main() anyerror!void {
     while (true) {
         const n = try stdin.read(read_buffer[0..]);
         if (n == 0) { break; }
-        _ = try printer.write(read_buffer[0..n]);
+        _ = try printer.writeAll(read_buffer[0..n]);
     }
 
     if (cut) {
@@ -199,27 +213,44 @@ pub fn main() anyerror!void {
     }
 }
 
+const Printer = union(enum) {
+    file: std.fs.File.Writer,
+    socket: std.net.Stream.Writer,
+
+    const Self = @This();
+
+    pub fn writeAll(self: Self, bytes: []const u8) !void {
+        switch(self) {
+            .file => |file| try file.writeAll(bytes),
+            .socket => |sock| try sock.writeAll(bytes)
+        }
+    }
+};
+
 fn usage() noreturn {
     const stderr = std.io.getStdErr().writer();
     const usage_text =
         \\usage: tlpr --ip <ip> [options]
+        \\       tlpr --stdout  [options]
         \\    Thermal Line Printer application.
         \\    Prints stdin through thermal printer.
         \\
         \\    -c cut paper after printing.
-        \\    --justify <left|right|center>
+        \\    -e emphasis
+        \\    -n don't initialize the printer when connecting
+        \\    -r reverse black/white printing
         \\    -u underline
         \\    -uu double underline
-        \\    -e emphasis
-        \\    --rotate rotate 90 degrees clockwise
-        \\    --upsidedown enable upside down mode
         \\    --height <1-8> select character height
-        \\    --width <1-8> select character width
-        \\    -r reverse black/white printing
-        \\    -n don't initialize the printer when connecting
         \\    --image <path> print an image
+        \\    --ip the IP address of the printer
+        \\    --justify <left|right|center>
+        \\    --rotate rotate 90 degrees clockwise
+        \\    --stdout write commands to standard out instead of sending over a socket
         \\    --threshold <value> image b/w threshold, 0-255 (default 150).
         \\    --threshold <min-max> image b/w threshold, randomized between min-max per pixel
+        \\    --upsidedown enable upside down mode
+        \\    --width <1-8> select character width
     ;
     stderr.print("{s}\n", .{usage_text}) catch unreachable;
     os.exit(1);
