@@ -415,6 +415,8 @@ pub const nv_bit_image = struct {
     data: []u8
 };
 
+/// Select character size
+/// height and width are between  0 and 7, with zero being size 1
 pub fn selectCharacterSize(height: u3, width: u3) [3]u8 {
     var n: u8 = 0;
     n |= height;
@@ -591,7 +593,7 @@ pub fn validBarcode(code_system: barcode_system, data: []const u8) !void {
         .upc_a, .upc_e, .jan13, .jan8, .itf => {
             for (data) |char| {
                 if (char < 48 or char > 57) {
-                    return error.InvalidCharacter;
+                    return error.InvalidBarcodeCharacter;
                 }
             }
         },
@@ -600,7 +602,7 @@ pub fn validBarcode(code_system: barcode_system, data: []const u8) !void {
                 switch (char) {
                     32, 36, 37, 42, 43, 45...57, 65...90 => {},
                     else => {
-                        return error.InvalidCharacter;
+                        return error.InvalidBarcodeCharacter;
                     }
                 }
             }
@@ -610,7 +612,7 @@ pub fn validBarcode(code_system: barcode_system, data: []const u8) !void {
                 switch (char) {
                     36, 43, 45...57, 65...68, 58 => {},
                     else => {
-                        return error.InvalidCharacter;
+                        return error.InvalidBarcodeCharacter;
                     }
                 }
             }
@@ -618,7 +620,7 @@ pub fn validBarcode(code_system: barcode_system, data: []const u8) !void {
         .code93, .code128 => {
             for (data) |char| {
                 if (char > 127) {
-                    return error.InvalidCharacter;
+                    return error.InvalidBarcodeCharacter;
                 }
             }
         }
