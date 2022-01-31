@@ -270,6 +270,7 @@ pub const clockwise_rotation_mode = struct {
 /// y0 = [( yL + yH × 256) × (vertical motion unit)]
 /// dx = [ dxL + dxH × 256] × (horizontal motion unit)]
 /// dy = [ dyL + dyH × 256] × (vertical motion unit)]
+/// [Default] xL = xH = yL = yH = 0 dxL = 0, dxH = 2, dyL = 126, dyH = 6
 pub fn setPageModeArea(x: u16, y: u16, dx: u16, dy: u16) [10]u8 {
     const x_split = splitU16(x);
     const y_split = splitU16(y);
