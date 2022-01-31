@@ -3,6 +3,7 @@ const os = std.os;
 const mem = std.mem;
 const commands = @import("./commands.zig");
 const raster_image = @import("./raster_image.zig");
+const macro = @import("macro.zig");
 const Threshold = raster_image.Threshold;
 
 pub fn main() anyerror!void {
@@ -26,6 +27,7 @@ pub fn main() anyerror!void {
     var image_threshold: Threshold = .{ .value = 150 };
     var read_buffer: [8192]u8 = undefined;
     var output_stdout = false;
+    var macro_mode = false;
 
     var printer: Printer = undefined;
 
@@ -104,6 +106,8 @@ pub fn main() anyerror!void {
             output_stdout = true;
         } else if (mem.eql(u8, "--alt", arg)) {
             alt_font = true;
+        } else if (mem.eql(u8, arg, "--macro")) {
+            macro_mode = true;
         }
     }
 
@@ -190,10 +194,21 @@ pub fn main() anyerror!void {
         try printer.writeAll(image);
     }
 
-    while (true) {
-        const n = try stdin.read(read_buffer[0..]);
-        if (n == 0) { break; }
-        _ = try printer.writeAll(read_buffer[0..n]);
+    if (macro_mode) {
+        while (true) {
+            const line = try stdin.readUntilDelimiterOrEof(read_buffer[0..], '\n');
+            if (line) |l| {
+                try macro.processMacroLine(allocator, l, printer);
+            } else {
+                break;
+            }
+        }
+    } else {
+        while (true) {
+            const n = try stdin.read(read_buffer[0..]);
+            if (n == 0) { break; }
+            _ = try printer.writeAll(read_buffer[0..n]);
+        }
     }
 
     if (cut) {
@@ -201,7 +216,7 @@ pub fn main() anyerror!void {
     }
 }
 
-const Printer = union(enum) {
+pub const Printer = union(enum) {
     file: std.fs.File.Writer,
     socket: std.net.Stream.Writer,
 
@@ -234,6 +249,7 @@ fn usage() noreturn {
         \\    --image <path> print an image
         \\    --ip the IP address of the printer
         \\    --justify <left|right|center>
+        \\    --macro use roff-like macro language
         \\    --rotate rotate 90 degrees clockwise
         \\    --stdout write commands to standard out instead of sending over a socket
         \\    --threshold <value> image b/w threshold, 0-255 (default 150).
