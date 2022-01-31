@@ -24,7 +24,7 @@ pub fn main() anyerror!void {
     var no_initialize = false;
     var image_path: ?[]u8 = null;
     var image_threshold: Threshold = .{ .value = 150 };
-    var read_buffer: [4086]u8 = undefined;
+    var read_buffer: [8192]u8 = undefined;
     var output_stdout = false;
 
     var printer: Printer = undefined;
@@ -97,26 +97,7 @@ pub fn main() anyerror!void {
                 usage();
             }
             const threshold_input = args[arg_idx + 1];
-            if (mem.indexOf(u8, threshold_input, "-") != null) {
-                var split = mem.split(u8, threshold_input, "-");
-                const min_input = split.next().?;
-                const max_input = split.next().?;
-                const min = try std.fmt.parseInt(u8, min_input, 10);
-                const max = try std.fmt.parseInt(u8, max_input, 10);
-                if (min >= max) {
-                    usage();
-                }
-                image_threshold = .{
-                    .range = .{
-                        .min = min,
-                        .max = max,
-                    },
-                };
-            } else {
-                image_threshold = .{
-                    .value = try std.fmt.parseInt(u8, threshold_input, 10)
-                };
-            }
+            image_threshold = try raster_image.parseThreshold(threshold_input);
 
             arg_idx += 1;
         } else if (mem.eql(u8, "--stdout", arg)) {

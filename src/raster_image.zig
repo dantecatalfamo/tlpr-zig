@@ -1,4 +1,5 @@
 const std = @import("std");
+const mem = std.mem;
 const zigimg = @import("zigimg");
 const commands = @import("./commands.zig");
 
@@ -59,6 +60,29 @@ pub fn imageToBitRaster(allocator: std.mem.Allocator, path: []const u8, threshol
     }
 
     return try commands.printRasterBitImage(allocator, .normal, @truncate(u16, byte_width), @truncate(u16, height), bytes);
+}
+
+pub fn parseThreshold(input: []const u8) !Threshold {
+    if (mem.indexOf(u8, input, "-") != null) {
+        var split = mem.split(u8, input, "-");
+        const min_input = split.next().?;
+        const max_input = split.next().?;
+        const min = try std.fmt.parseInt(u8, min_input, 10);
+        const max = try std.fmt.parseInt(u8, max_input, 10);
+        if (min >= max) {
+            return error.InvalidRange;
+        }
+        image_threshold = .{
+            .range = .{
+                .min = min,
+                .max = max,
+            },
+        };
+    } else {
+        image_threshold = .{
+            .value = try std.fmt.parseInt(u8, input, 10)
+        };
+    }
 }
 
 pub const Threshold = union(enum) {
