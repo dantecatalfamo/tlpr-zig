@@ -10,6 +10,7 @@ pub fn main() anyerror!void {
     var allocator = gpa.allocator();
     defer _ = gpa.deinit();
 
+    var alt_font = false;
     var ip: ?[]u8 = null;
     var cut = false;
     var justify: ?[]u8 = null;
@@ -120,6 +121,8 @@ pub fn main() anyerror!void {
             arg_idx += 1;
         } else if (mem.eql(u8, "--stdout", arg)) {
             output_stdout = true;
+        } else if (mem.eql(u8, "--alt", arg)) {
+            alt_font = true;
         }
     }
 
@@ -196,6 +199,10 @@ pub fn main() anyerror!void {
         try printer.writeAll(&commands.reverse_white_black_mode.on);
     }
 
+    if (alt_font) {
+        try printer.writeAll(&commands.character_font.font_b);
+    }
+
     if (image_path) |path| {
         const image = try raster_image.imageToBitRaster(allocator, path, image_threshold);
         defer allocator.free(image);
@@ -241,6 +248,7 @@ fn usage() noreturn {
         \\    -r reverse black/white printing
         \\    -u underline
         \\    -uu double underline
+        \\    --alt use alternate font
         \\    --height <1-8> select character height
         \\    --image <path> print an image
         \\    --ip the IP address of the printer
@@ -252,6 +260,6 @@ fn usage() noreturn {
         \\    --upsidedown enable upside down mode
         \\    --width <1-8> select character width
     ;
-    stderr.print("{s}\n", .{usage_text}) catch unreachable;
+    stderr.print("{s}\n", .{ usage_text }) catch unreachable;
     os.exit(1);
 }
