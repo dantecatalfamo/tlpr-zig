@@ -72,14 +72,14 @@ pub fn parseThreshold(input: []const u8) !Threshold {
         if (min >= max) {
             return error.InvalidRange;
         }
-        image_threshold = .{
+        return Threshold{
             .range = .{
                 .min = min,
                 .max = max,
             },
         };
     } else {
-        image_threshold = .{
+        return Threshold{
             .value = try std.fmt.parseInt(u8, input, 10)
         };
     }
