@@ -5,15 +5,23 @@ const fmt = std.fmt;
 const Printer = @import("main.zig").Printer;
 const commands = @import("commands.zig");
 const raster_image = @import("raster_image.zig");
+const wordWrap = @import("wrap.zig").wordWrap;
 
-pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Printer) !void {
+pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Printer, word_wrap: *?u8) !void {
     if (mem.eql(u8, line, "")) {
         try writer.writeAll("\n");
         return;
     }
 
     if (line[0] != '.') {
-        try writer.writeAll(line);
+        if (word_wrap.*) |wrap_len| {
+            var rest = try allocator.dupe(u8, line);
+            defer allocator.free(rest);
+            wordWrap(rest, wrap_len);
+            try writer.writeAll(rest);
+        } else {
+            try writer.writeAll(line);
+        }
         return;
     }
     var iter = mem.tokenize(u8, line[1..], " \t");
@@ -287,35 +295,14 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Prin
 
     }
 
-    try writer.writeAll(iter.rest());
-}
-
-pub fn wordWrap(line: []u8, width: u8) void {
-    var last_space: usize = 0;
-    var last_newline: usize = 0;
-
-    for (line) |char, idx| {
-        const cur_line = idx - last_newline;
-        if (std.ascii.isSpace(char)) {
-            last_space = idx;
-        }
-        if (char == '\n') {
-            last_newline = idx;
-        }
-        if (cur_line == width-2) {
-            last_newline = idx;
-            line[last_space] = '\n';
-        }
+    if (word_wrap.*) |wrap_len| {
+        var rest = try allocator.dupe(u8, iter.rest());
+        defer allocator.free(rest);
+        wordWrap(rest, wrap_len);
+        try writer.writeAll(rest);
+    } else {
+        try writer.writeAll(iter.rest());
     }
-}
-
-test "word wrap" {
-    var allocator = std.testing.allocator;
-    const text = "hello this is a very long bunch of text I think this should serve as a good test, hopefully I'm able to catch some bugs using this since\nit's very long also hello\nthis is a nice day don't you think? Very cool and good, goodbye!";
-    var txt = try allocator.dupe(u8, text);
-    defer allocator.free(txt);
-    wordWrap(txt, 30);
-    std.debug.print("{s}\n", .{txt});
 }
 
 const macroKeywords = enum {

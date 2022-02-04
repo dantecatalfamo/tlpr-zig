@@ -4,6 +4,7 @@ const mem = std.mem;
 const commands = @import("./commands.zig");
 const raster_image = @import("./raster_image.zig");
 const macro = @import("macro.zig");
+const wordWrap = @import("wrap.zig").wordWrap;
 const Threshold = raster_image.Threshold;
 
 pub fn main() anyerror!void {
@@ -28,6 +29,7 @@ pub fn main() anyerror!void {
     var read_buffer: [8192]u8 = undefined;
     var output_stdout = false;
     var macro_mode = false;
+    var word_wrap: ?u8 = null;
 
     var printer: Printer = undefined;
 
@@ -108,6 +110,12 @@ pub fn main() anyerror!void {
             alt_font = true;
         } else if (mem.eql(u8, arg, "--macro")) {
             macro_mode = true;
+        } else if (mem.eql(u8, arg, "--wrap")) {
+            if (arg_idx + 1 == args.len) {
+                usage();
+            }
+            word_wrap = try std.fmt.parseInt(u8, args[arg_idx + 1], 10);
+            arg_idx += 1;
         }
     }
 
@@ -197,17 +205,29 @@ pub fn main() anyerror!void {
     if (macro_mode) {
         while (true) {
             const line = try stdin.readUntilDelimiterOrEof(read_buffer[0..], '\n');
-            if (line) |l| {
-                try macro.processMacroLine(allocator, l, printer);
+            if (line) |valid_line| {
+                try macro.processMacroLine(allocator, valid_line, printer, &word_wrap);
             } else {
                 break;
             }
         }
     } else {
         while (true) {
-            const n = try stdin.read(read_buffer[0..]);
-            if (n == 0) { break; }
-            _ = try printer.writeAll(read_buffer[0..n]);
+            const line = try stdin.readUntilDelimiterOrEof(read_buffer[0..], '\n');
+            if (line) |valid_line| {
+                if (word_wrap) |wrap_len| {
+                    var dupe_line = try allocator.dupe(u8, valid_line);
+                    defer allocator.free(dupe_line);
+                    wordWrap(dupe_line, wrap_len);
+                    try printer.writeAll(dupe_line);
+                    try printer.writeAll("\n");
+                } else {
+                    try printer.writeAll(valid_line);
+                    try printer.writeAll("\n");
+                }
+            } else {
+                break;
+            }
         }
     }
 
@@ -256,6 +276,7 @@ fn usage() noreturn {
         \\    --threshold <min-max> image b/w threshold, randomized between min-max per pixel
         \\    --upsidedown enable upside down mode
         \\    --width <1-8> select character width
+        \\    --wrap <num> wrap lines at <num> characters
     ;
     stderr.print("{s}\n", .{ usage_text }) catch unreachable;
     os.exit(1);
