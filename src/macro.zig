@@ -35,14 +35,20 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Prin
         },
         .Jl => {
             // Justify left
+            // Writes newline first
+            try writer.writeAll("\n");
             try writer.writeAll(&commands.justification.left);
         },
         .Jc => {
             // Justify center
+            // Writes newline first
+            try writer.writeAll("\n");
             try writer.writeAll(&commands.justification.center);
         },
         .Jr => {
             // Justify right
+            // Writes newline first
+            try writer.writeAll("\n");
             try writer.writeAll(&commands.justification.right);
         },
         .Pp => {

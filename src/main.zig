@@ -214,6 +214,7 @@ pub fn main() anyerror!void {
                     return err;
                 };
             } else {
+                try printer.writeAll("\n");
                 break;
             }
         }
