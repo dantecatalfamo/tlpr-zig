@@ -6,6 +6,7 @@ const raster_image = @import("./raster_image.zig");
 const macro = @import("macro.zig");
 const wordWrap = @import("wrap.zig").wordWrap;
 const Threshold = raster_image.Threshold;
+const Printer = @import("printer.zig").Printer;
 
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -242,20 +243,6 @@ pub fn main() anyerror!void {
         try printer.writeAll(&commands.feedAndPartualCut(0));
     }
 }
-
-pub const Printer = union(enum) {
-    file: std.fs.File.Writer,
-    socket: std.net.Stream.Writer,
-
-    const Self = @This();
-
-    pub fn writeAll(self: Self, bytes: []const u8) !void {
-        switch(self) {
-            .file => |file| try file.writeAll(bytes),
-            .socket => |sock| try sock.writeAll(bytes)
-        }
-    }
-};
 
 fn usage() noreturn {
     const stderr = std.io.getStdErr().writer();
