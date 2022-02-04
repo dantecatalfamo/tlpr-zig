@@ -234,22 +234,57 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Prin
             try writer.writeAll("\n");
             try writer.writeAll(&commands.feedAndPartualCut(num));
         },
-        .H0 => {
-            // No headline (regular size text)
+        .T1 => {
+            // Text size 1
             try writer.writeAll(&commands.selectCharacterSize(0, 0));
+        },
+        .T2 => {
+            // Text size 2
+            try writer.writeAll(&commands.selectCharacterSize(1, 1));
+        },
+        .T3 => {
+            // Text size 3
+            try writer.writeAll(&commands.selectCharacterSize(2, 2));
+        },
+        .T4 => {
+            // Text size 4
+            try writer.writeAll(&commands.selectCharacterSize(3, 3));
         },
         .H1 => {
             // Headline 1
+            // Headline 1 = Text size 2 ++ arg ++ Text size 1 ++ newline
+            // Headlines print the rest of the line at headline size
+            // and then return to default size automatically and
+            // append a newline
             try writer.writeAll(&commands.selectCharacterSize(1, 1));
+            const arg = iter.rest();
+            // empty iter
+            iter.index = iter.buffer.len;
+            try writer.writeAll(arg);
+            try writer.writeAll(&commands.selectCharacterSize(0, 0));
+            try writer.writeAll("\n");
         },
         .H2 => {
             // Headline 2
             try writer.writeAll(&commands.selectCharacterSize(2, 2));
+            const arg = iter.rest();
+            // empty iter
+            iter.index = iter.buffer.len;
+            try writer.writeAll(arg);
+            try writer.writeAll(&commands.selectCharacterSize(0, 0));
+            try writer.writeAll("\n");
         },
         .H3 => {
             // Headline 3
             try writer.writeAll(&commands.selectCharacterSize(3, 3));
-        }
+            const arg = iter.rest();
+            // empty iter
+            iter.index = iter.buffer.len;
+            try writer.writeAll(arg);
+            try writer.writeAll(&commands.selectCharacterSize(0, 0));
+            try writer.writeAll("\n");
+        },
+
     }
 
     try writer.writeAll(iter.rest());
@@ -311,6 +346,10 @@ const macroKeywords = enum {
     Ru,
     Rv,
     Sc,
+    T1,
+    T2,
+    T3,
+    T4,
     Ud,
     Un,
     Uo,
