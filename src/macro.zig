@@ -26,7 +26,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Prin
     }
     var iter = mem.tokenize(u8, line[1..], " \t");
     const macro_str = iter.next() orelse return error.MissingMacro;
-    const macro = meta.stringToEnum(macroKeywords, macro_str) orelse return error.InvalidMacro;
+    const macro = meta.stringToEnum(macro_keywords, macro_str) orelse return error.InvalidMacro;
 
     switch(macro) {
         .@"\\\"" => {
@@ -311,7 +311,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Prin
     }
 }
 
-const macroKeywords = enum {
+const macro_keywords = enum {
     @"\\\"",
     Bc,
     Bh,
