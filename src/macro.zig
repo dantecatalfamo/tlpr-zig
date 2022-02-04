@@ -176,7 +176,6 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Prin
             defer allocator.free(img);
             try writer.writeAll("\n");
             try writer.writeAll(img);
-            try writer.writeAll("\n");
         },
         .Hp => {
             // TODO Set HRI character position for bar codes
