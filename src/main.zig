@@ -35,6 +35,7 @@ pub fn main() anyerror!void {
 
     const stdin = std.io.getStdIn().reader();
     const stdout = std.io.getStdOut().writer();
+    const stderr = std.io.getStdErr().writer();
 
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
@@ -203,10 +204,15 @@ pub fn main() anyerror!void {
     }
 
     if (macro_mode) {
+        var line_number: usize = 0;
         while (true) {
+            line_number += 1;
             const line = try stdin.readUntilDelimiterOrEof(read_buffer[0..], '\n');
             if (line) |valid_line| {
-                try macro.processMacroLine(allocator, valid_line, printer, &word_wrap);
+                macro.processMacroLine(allocator, valid_line, printer, &word_wrap) catch |err| {
+                    try stderr.print("Macro error on line {d}: {s}\n", .{ line_number, @errorName(err) });
+                    return err;
+                };
             } else {
                 break;
             }
