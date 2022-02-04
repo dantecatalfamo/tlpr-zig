@@ -292,6 +292,12 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Prin
             try writer.writeAll(&commands.selectCharacterSize(0, 0));
             try writer.writeAll("\n");
         },
+        .Ww => {
+            // Change word wrap
+            const arg = iter.next() orelse return error.MissingMacroArg;
+            const num = try fmt.parseInt(u8, arg, 10);
+            word_wrap.* = num;
+        },
 
     }
 
@@ -351,4 +357,5 @@ const macroKeywords = enum {
     Un,
     Uo,
     Ut,
+    Ww,
 };
