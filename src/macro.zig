@@ -5,7 +5,7 @@ const fmt = std.fmt;
 const Printer = @import("printer.zig").Printer;
 const commands = @import("commands.zig");
 const raster_image = @import("raster_image.zig");
-const wordWrap = @import("wrap.zig").wordWrap;
+const wrap = @import("wrap.zig");
 
 pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Printer, word_wrap: *?u8) !void {
     if (mem.eql(u8, line, "")) {
@@ -15,10 +15,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Prin
 
     if (line[0] != '.') {
         if (word_wrap.*) |wrap_len| {
-            var rest = try allocator.dupe(u8, line);
-            defer allocator.free(rest);
-            wordWrap(rest, wrap_len);
-            try writer.writeAll(rest);
+            try wrap.wrappedPrint(allocator, line, wrap_len, writer);
         } else {
             try writer.writeAll(line);
         }
@@ -308,10 +305,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Prin
     }
 
     if (word_wrap.*) |wrap_len| {
-        var rest = try allocator.dupe(u8, iter.rest());
-        defer allocator.free(rest);
-        wordWrap(rest, wrap_len);
-        try writer.writeAll(rest);
+        try wrap.wrappedPrint(allocator, iter.rest(), wrap_len, writer);
     } else {
         try writer.writeAll(iter.rest());
     }

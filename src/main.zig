@@ -4,7 +4,7 @@ const mem = std.mem;
 const commands = @import("./commands.zig");
 const raster_image = @import("./raster_image.zig");
 const macro = @import("macro.zig");
-const wordWrap = @import("wrap.zig").wordWrap;
+const wrap = @import("wrap.zig");
 const Threshold = raster_image.Threshold;
 const Printer = @import("printer.zig").Printer;
 
@@ -224,10 +224,7 @@ pub fn main() anyerror!void {
             const line = try stdin.readUntilDelimiterOrEof(read_buffer[0..], '\n');
             if (line) |valid_line| {
                 if (word_wrap) |wrap_len| {
-                    var dupe_line = try allocator.dupe(u8, valid_line);
-                    defer allocator.free(dupe_line);
-                    wordWrap(dupe_line, wrap_len);
-                    try printer.writeAll(dupe_line);
+                    try wrap.wrappedPrint(allocator, valid_line, wrap_len, printer);
                     try printer.writeAll("\n");
                 } else {
                     try printer.writeAll(valid_line);
