@@ -86,7 +86,6 @@ pub const WrappingPrinter = struct {
 
     pub fn flush(self: *Self) !usize {
         try self.printer.writeAll(self.buffer[0..self.index]);
-        try self.printer.writeAll("\n");
         const old_index = self.index;
         self.index = 0;
         self.last_space = 0;
@@ -95,6 +94,7 @@ pub const WrappingPrinter = struct {
 
     pub fn setWrap(self: *Self, length: u8) !void {
         _ = try self.flush();
+        _ = try self.write("\n");
         self.wrap_length = length;
     }
 };
