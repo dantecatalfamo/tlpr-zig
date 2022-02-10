@@ -2,23 +2,21 @@ const std = @import("std");
 const mem = std.mem;
 const meta = std.meta;
 const fmt = std.fmt;
-const Printer = @import("printer.zig").Printer;
+const prnt = @import("printer.zig");
+const Printer = prnt.Printer;
+const WrappingPrinter = prnt.WrappingPrinter;
 const commands = @import("commands.zig");
 const raster_image = @import("raster_image.zig");
 const wrap = @import("wrap.zig");
 
-pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Printer, word_wrap: *?u8) !void {
+pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *WrappingPrinter) !void {
     if (mem.eql(u8, line, "")) {
-        try writer.writeAll("\n");
+        try wrapping.writeAll("\n");
         return;
     }
 
     if (line[0] != '.') {
-        if (word_wrap.*) |wrap_len| {
-            try wrap.wrappedPrint(allocator, line, wrap_len, writer);
-        } else {
-            try writer.writeAll(line);
-        }
+        try wrapping.writeAll(line);
         return;
     }
     var iter = mem.tokenize(u8, line[1..], " \t");
@@ -33,20 +31,20 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, writer: Prin
         .Jl => {
             // Justify left
             // Writes newline first
-            try writer.writeAll("\n");
-            try writer.writeAll(&commands.justification.left);
+            try wrapping.flushNewline();
+            try wrapping.writeAllDirect(&commands.justification.left);
         },
         .Jc => {
             // Justify center
             // Writes newline first
-            try writer.writeAll("\n");
-            try writer.writeAll(&commands.justification.center);
+            try wrapping.flushNewline();
+            try wrapping.writeAllDirect(&commands.justification.center);
         },
         .Jr => {
             // Justify right
             // Writes newline first
-            try writer.writeAll("\n");
-            try writer.writeAll(&commands.justification.right);
+            try wrapping.flushNewline();
+            try wrapping.writeAllDirect(&commands.justification.right);
         },
         .Pp => {
             // Print Position

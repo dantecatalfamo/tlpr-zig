@@ -36,6 +36,7 @@ pub const WrappingPrinter = struct {
     last_space: usize = 0,
     buffer:  [256]u8 = undefined,
     printer: Printer,
+    disabled: bool = false,
 
     const Self = @This();
     const WriteError = Printer.WriteError;
@@ -53,6 +54,11 @@ pub const WrappingPrinter = struct {
     }
 
     pub fn write(self: *Self, line: []const u8) !usize {
+        if (self.disabled) {
+            try self.printer.writeAll(line);
+            return line.len;
+        }
+
         for (line) |char| {
             if (char == '\n') {
                 try self.printer.writeAll(self.buffer[0..self.index]);
@@ -84,6 +90,14 @@ pub const WrappingPrinter = struct {
         return line.len;
     }
 
+    pub fn writeAll(self: *Self, line: []const u8) !void {
+        _ = try self.write(line);
+    }
+
+    pub fn writeAllDirect(self: *Self, line: []const u8) !void {
+        return self.printer.writeAll(line);
+    }
+
     pub fn flush(self: *Self) !usize {
         try self.printer.writeAll(self.buffer[0..self.index]);
         const old_index = self.index;
@@ -92,10 +106,23 @@ pub const WrappingPrinter = struct {
         return old_index;
     }
 
-    pub fn setWrap(self: *Self, length: u8) !void {
+    pub fn flushNewline(self: *Self) !void {
         _ = try self.flush();
-        _ = try self.write("\n");
+        try self.writeAll("\n");
+    }
+
+    pub fn setWrap(self: *Self, length: u8) !void {
+        try self.flushNewline();
         self.wrap_length = length;
+    }
+
+    pub fn enable(self: *Self) void {
+        self.disabled = false;
+    }
+
+    pub fn disable(self: *Self) !void {
+        _ = try self.flush();
+        self.disabled = true;
     }
 };
 
