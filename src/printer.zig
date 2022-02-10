@@ -89,7 +89,13 @@ pub const WrappingPrinter = struct {
         try self.printer.writeAll("\n");
         const old_index = self.index;
         self.index = 0;
+        self.last_space = 0;
         return old_index;
+    }
+
+    pub fn setWrap(self: *Self, length: u8) !void {
+        _ = try self.flush();
+        self.wrap_length = length;
     }
 };
 
