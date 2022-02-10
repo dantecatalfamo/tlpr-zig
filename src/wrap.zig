@@ -27,6 +27,32 @@ pub fn wordWrap(line: []u8, width: u8) void {
     }
 }
 
+pub fn WrappingPrinter(printer: Printer, wrap_length: usize, max_line: usize) type {
+    return struct {
+        wrap_length: u8 = wrap_length,
+        index: usize = 0,
+        last_newline: usize = 0,
+        last_space: usize = 0,
+        buffer: [max_line]u8,
+        printer: Printer = printer,
+
+        const Self = @This();
+
+        pub fn write(self: *Self, line: []const u8) !usize {
+            for (line) |char, idx| {
+                if (std.ascii.isSpace(char)) {
+                    self.last_space = idx;
+                }
+                if (char == '\n') {
+                    // send
+                }
+                // assume send
+                // if (line.len > )
+            }
+        }
+    };
+}
+
 /// Xprinter 80mm text line lengths in characters
 pub const wrap_80mm = struct {
     pub const font_a = enum(u8) {
