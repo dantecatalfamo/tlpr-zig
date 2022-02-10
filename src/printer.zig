@@ -92,3 +92,19 @@ pub const WrappingPrinter = struct {
         return old_index;
     }
 };
+
+/// Xprinter 80mm text line lengths in characters
+pub const wrap_80mm = struct {
+    pub const font_a = enum(u8) {
+        size_1 = 48,
+        size_2 = 34,
+        size_3 = 16,
+        size_4 = 12,
+    };
+    pub const font_b = enum(u8) {
+        size_1 = 64,
+        size_2 = 32,
+        size_3 = 21,
+        size_4 = 16,
+    };
+};
