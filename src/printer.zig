@@ -111,7 +111,7 @@ pub const WrappingPrinter = struct {
     }
 
     pub fn setWrap(self: *Self, length: u8) !void {
-        try self.flushNewline();
+        _ = try self.flush();
         if (length == 0) {
             try self.disableWrapping();
         } else {
