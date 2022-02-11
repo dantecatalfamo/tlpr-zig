@@ -95,6 +95,7 @@ pub const WrappingPrinter = struct {
     }
 
     pub fn writeAllDirect(self: *Self, line: []const u8) !void {
+        try self.flush();
         return self.printer.writeAll(line);
     }
 
@@ -107,12 +108,16 @@ pub const WrappingPrinter = struct {
     }
 
     pub fn flushNewline(self: *Self) !void {
-        _ = try self.flush();
         try self.writeAll("\n");
     }
 
     pub fn setWrap(self: *Self, length: u8) !void {
         try self.flushNewline();
+        if (length == 0) {
+            self.disable();
+        } else {
+            self.enable();
+        }
         self.wrap_length = length;
     }
 
