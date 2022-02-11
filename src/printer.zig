@@ -36,7 +36,7 @@ pub const WrappingPrinter = struct {
     last_space: usize = 0,
     buffer:  [256]u8 = undefined,
     printer: Printer,
-    disabled: bool = true,
+    wrapping_disabled: bool = true,
 
     const Self = @This();
     const WriteError = Printer.WriteError;
@@ -53,7 +53,7 @@ pub const WrappingPrinter = struct {
     }
 
     pub fn write(self: *Self, line: []const u8) !usize {
-        if (self.disabled) {
+        if (self.wrapping_disabled) {
             try self.printer.writeAll(line);
             return line.len;
         }
@@ -113,20 +113,20 @@ pub const WrappingPrinter = struct {
     pub fn setWrap(self: *Self, length: u8) !void {
         try self.flushNewline();
         if (length == 0) {
-            try self.disable();
+            try self.disableWrapping();
         } else {
-            self.enable();
+            self.enableWrapping();
         }
         self.wrap_length = length;
     }
 
-    pub fn enable(self: *Self) void {
-        self.disabled = false;
+    pub fn enableWrapping(self: *Self) void {
+        self.wrapping_disabled = false;
     }
 
-    pub fn disable(self: *Self) !void {
+    pub fn disableWrapping(self: *Self) !void {
         _ = try self.flush();
-        self.disabled = true;
+        self.wrapping_disabled = true;
     }
 };
 
