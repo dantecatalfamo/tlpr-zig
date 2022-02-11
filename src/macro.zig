@@ -301,9 +301,10 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *W
         },
         .Ww => {
             // Change word wrap
+            // Wrap length of 0 disables wrapping
             const arg = iter.next() orelse return error.MissingMacroArg;
             const num = try fmt.parseInt(u8, arg, 10);
-            wrapping.setWrap(num);
+            try wrapping.setWrap(num);
         },
 
     }

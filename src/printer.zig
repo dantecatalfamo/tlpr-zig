@@ -31,21 +31,20 @@ pub const Printer = union(enum) {
 };
 
 pub const WrappingPrinter = struct {
-    wrap_length: u8,
+    wrap_length: u8 = 0,
     index: usize = 0,
     last_space: usize = 0,
     buffer:  [256]u8 = undefined,
     printer: Printer,
-    disabled: bool = false,
+    disabled: bool = true,
 
     const Self = @This();
     const WriteError = Printer.WriteError;
     const Writer = std.io.Writer(*Self, WriteError, write);
 
-    pub fn init(printer: Printer, wrap_length: u8) Self {
+    pub fn init(printer: Printer) Self {
         return .{
             .printer = printer,
-            .wrap_length = wrap_length
         };
     }
 
@@ -95,7 +94,7 @@ pub const WrappingPrinter = struct {
     }
 
     pub fn writeAllDirect(self: *Self, line: []const u8) !void {
-        try self.flush();
+        _ = try self.flush();
         return self.printer.writeAll(line);
     }
 
@@ -114,7 +113,7 @@ pub const WrappingPrinter = struct {
     pub fn setWrap(self: *Self, length: u8) !void {
         try self.flushNewline();
         if (length == 0) {
-            self.disable();
+            try self.disable();
         } else {
             self.enable();
         }

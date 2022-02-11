@@ -6,7 +6,9 @@ const raster_image = @import("./raster_image.zig");
 const macro = @import("macro.zig");
 const wrap = @import("wrap.zig");
 const Threshold = raster_image.Threshold;
-const Printer = @import("printer.zig").Printer;
+const prnt = @import("printer.zig");
+const Printer = prnt.Printer;
+const WrappingPrinter = prnt.WrappingPrinter;
 
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -33,6 +35,7 @@ pub fn main() anyerror!void {
     var word_wrap: ?u8 = null;
 
     var printer: Printer = undefined;
+    var wrapping: WrappingPrinter = undefined;
 
     const stdin = std.io.getStdIn().reader();
     const stdout = std.io.getStdOut().writer();
@@ -136,6 +139,12 @@ pub fn main() anyerror!void {
         };
     }
 
+    wrapping = WrappingPrinter.init(printer);
+
+    if (word_wrap) |wrap_len| {
+      try wrapping.setWrap(wrap_len);
+    }
+
     if (!no_initialize) {
         try printer.writeAll(&commands.initialize);
     }
@@ -210,7 +219,7 @@ pub fn main() anyerror!void {
             line_number += 1;
             const line = try stdin.readUntilDelimiterOrEof(read_buffer[0..], '\n');
             if (line) |valid_line| {
-                macro.processMacroLine(allocator, valid_line, printer, &word_wrap) catch |err| {
+                macro.processMacroLine(allocator, valid_line, &wrapping) catch |err| {
                     try stderr.print("Macro error on line {d}: {s}\n", .{ line_number, @errorName(err) });
                     return err;
                 };
@@ -223,13 +232,8 @@ pub fn main() anyerror!void {
         while (true) {
             const line = try stdin.readUntilDelimiterOrEof(read_buffer[0..], '\n');
             if (line) |valid_line| {
-                if (word_wrap) |wrap_len| {
-                    try wrap.wrappedPrint(allocator, valid_line, wrap_len, printer);
-                    try printer.writeAll("\n");
-                } else {
-                    try printer.writeAll(valid_line);
-                    try printer.writeAll("\n");
-                }
+                try wrapping.writeAll(valid_line);
+                try wrapping.flushNewline();
             } else {
                 break;
             }
