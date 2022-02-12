@@ -192,12 +192,12 @@ pub const Printer = struct {
     }
 
     pub fn setJustification(self: *Self, justification: Justification) !void {
-        try self.flushMaybeNewline();
         const command = switch (justification) {
             .left => commands.justification.left,
             .center => commands.justification.center,
             .right => commands.justification.right,
         };
+        try self.flushMaybeNewline();
         try self.writeAllDirect(&command);
         self.justification = justification;
     }
@@ -398,6 +398,11 @@ pub const Printer = struct {
         try self.writeAllDirect(&commands.setPrintingAreaWidth(units));
         self.printing_area_width = units;
     }
+
+    pub fn setPrintPosition(self: *Self, units: u16) !void {
+        try self.writeAllDirect(&commands.setPrintPosition(units));
+    }
+
 };
 
 /// Xprinter 80mm text line lengths in characters

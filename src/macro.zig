@@ -7,14 +7,14 @@ const Printer = prnt.Printer;
 const commands = @import("commands.zig");
 const raster_image = @import("raster_image.zig");
 
-pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *Printer) !void {
+pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, printer: *Printer) !void {
     if (mem.eql(u8, line, "")) {
-        try wrapping.writeAll("\n");
+        try printer.writeAll("\n");
         return;
     }
 
     if (line[0] != '.') {
-        try wrapping.writeAll(line);
+        try printer.writeAll(line);
         return;
     }
 
@@ -30,83 +30,80 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *P
         .Jl => {
             // Justify left
             // Writes newline first
-            try wrapping.flushMaybeNewline();
-            try wrapping.writeAllDirect(&commands.justification.left);
+            try printer.setJustification(.left);
         },
         .Jc => {
             // Justify center
             // Writes newline first
-            try wrapping.flushMaybeNewline();
-            try wrapping.writeAllDirect(&commands.justification.center);
+            try printer.setJustification(.center);
         },
         .Jr => {
             // Justify right
             // Writes newline first
-            try wrapping.flushMaybeNewline();
-            try wrapping.writeAllDirect(&commands.justification.right);
+            try printer.setJustification(.right);
         },
         .Pp => {
             // Print Position
             const arg = iter.next() orelse return error.MissingMacroArg;
             const num = try fmt.parseInt(u16, arg, 10);
-            try wrapping.writeAllDirect(&commands.setPrintPosition(num));
+            try printer.writeAllDirect(&commands.setPrintPosition(num));
         },
         .Un => {
             // Underline none
-            try wrapping.writeAllDirect(&commands.underline.none);
+            try printer.writeAllDirect(&commands.underline.none);
         },
         .Uo => {
             // Underline one
-            try wrapping.writeAllDirect(&commands.underline.one);
+            try printer.writeAllDirect(&commands.underline.one);
         },
         .Ut => {
             // Underline two
-            try wrapping.writeAllDirect(&commands.underline.two);
+            try printer.writeAllDirect(&commands.underline.two);
         },
         .Ls => {
             // Line spacing
             const arg = iter.next() orelse return error.MissingMacroArg;
             if (mem.eql(u8, arg, "default")) {
-                try wrapping.writeAllDirect(&commands.line_spacing.default);
+                try printer.writeAllDirect(&commands.line_spacing.default);
             } else {
                 const num = try fmt.parseInt(u8, arg, 10);
-                try wrapping.writeAllDirect(&commands.line_spacing.custom(num));
+                try printer.writeAllDirect(&commands.line_spacing.custom(num));
             }
         },
         .In => {
             // Initialize
-            try wrapping.writeAllDirect(&commands.initialize);
+            try printer.writeAllDirect(&commands.initialize);
         },
         .Em => {
             // Emphasis
-            try wrapping.writeAllDirect(&commands.emphasis.on);
+            try printer.writeAllDirect(&commands.emphasis.on);
         },
         .Eo => {
             // Emphasis off
-            try wrapping.writeAllDirect(&commands.emphasis.off);
+            try printer.writeAllDirect(&commands.emphasis.off);
         },
         .Ds => {
             // Double Strike
-            try wrapping.writeAllDirect(&commands.double_strike.on);
+            try printer.writeAllDirect(&commands.double_strike.on);
         },
         .Do => {
             // Double strike off
-            try wrapping.writeAllDirect(&commands.double_strike.off);
+            try printer.writeAllDirect(&commands.double_strike.off);
         },
         .Pf => {
             // Print and Feed
             const arg = iter.next() orelse return error.MissingMacroArg;
             const num = try fmt.parseInt(u8, arg, 10);
-            try wrapping.flushMaybeNewline();
-            try wrapping.writeAllDirect(&commands.printAndFeed(num));
+            try printer.flushMaybeNewline();
+            try printer.writeAllDirect(&commands.printAndFeed(num));
         },
         .Fa => {
             // Select character font a
-            try wrapping.writeAllDirect(&commands.character_font.font_a);
+            try printer.writeAllDirect(&commands.character_font.font_a);
         },
         .Fb => {
             // Select character font b
-            try wrapping.writeAllDirect(&commands.character_font.font_b);
+            try printer.writeAllDirect(&commands.character_font.font_b);
         },
         .Sc => {
             // TODO Select character set
@@ -118,26 +115,26 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *P
         },
         .Cr => {
             // Clockwise rotation mode
-            try wrapping.writeAllDirect(&commands.clockwise_rotation_mode.on);
+            try printer.writeAllDirect(&commands.clockwise_rotation_mode.on);
         },
         .Co => {
             // Clockwise rotation mode off
-            try wrapping.writeAllDirect(&commands.clockwise_rotation_mode.off);
+            try printer.writeAllDirect(&commands.clockwise_rotation_mode.off);
         },
         .Pl => {
             // Print and feed lines
             const arg = iter.next() orelse return error.MissingMacroArg;
             const num = try fmt.parseInt(u8, arg, 10);
-            try wrapping.flushMaybeNewline();
-            try wrapping.writeAllDirect(&commands.printAndFeedLines(num));
+            try printer.flushMaybeNewline();
+            try printer.writeAllDirect(&commands.printAndFeedLines(num));
         },
         .Ud => {
             // Upside down mode
-            try wrapping.writeAll(&commands.upside_down_mode.enable);
+            try printer.writeAll(&commands.upside_down_mode.enable);
         },
         .Ru => {
             // Right side up mode (disable upside down)
-            try wrapping.writeAll(&commands.upside_down_mode.disable);
+            try printer.writeAll(&commands.upside_down_mode.disable);
         },
         .Cs => {
             // Character size
@@ -150,15 +147,15 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *P
             }
             const height = @truncate(u3, height_u4 - 1);
             const width = @truncate(u3, width_u4 - 1);
-            try wrapping.writeAllDirect(&commands.selectCharacterSize(height, width));
+            try printer.writeAllDirect(&commands.selectCharacterSize(height, width));
         },
         .Rv => {
             // Reverse black and white
-            try wrapping.writeAllDirect(&commands.reverse_white_black_mode.on);
+            try printer.writeAllDirect(&commands.reverse_white_black_mode.on);
         },
         .Ro => {
             // Reverse black and white off
-            try wrapping.writeAllDirect(&commands.reverse_white_black_mode.off);
+            try printer.writeAllDirect(&commands.reverse_white_black_mode.off);
         },
         .Im => {
             // Print image from path
@@ -170,8 +167,8 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *P
 
             const img = try raster_image.imageToBitRaster(allocator, path, threshold);
             defer allocator.free(img);
-            try wrapping.flushMaybeNewline();
-            try wrapping.writeAllDirect(img);
+            try printer.flushMaybeNewline();
+            try printer.writeAllDirect(img);
         },
         .Hp => {
             // TODO Set HRI character position for bar codes
@@ -179,7 +176,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *P
         },
         .Md => {
             // Start or stop define macro
-            try wrapping.writeAllDirect(&commands.start_or_end_macro_definition);
+            try printer.writeAllDirect(&commands.start_or_end_macro_definition);
         },
         .Me => {
             // Execute macro
@@ -197,7 +194,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *P
                     return error.InvalidMacroArg;
                 }
             };
-            try wrapping.writeAllDirect(&commands.executeMacro(num_times, num_wait, mode));
+            try printer.writeAllDirect(&commands.executeMacro(num_times, num_wait, mode));
         },
         .Hf => {
             // TODO HRI font
@@ -206,13 +203,13 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *P
             // Barcode height
             const arg = iter.next() orelse return error.MissingMacroArg;
             const num = try fmt.parseInt(u8, arg, 10);
-            try wrapping.writeAllDirect(&commands.selectBarcodeHeight(num));
+            try printer.writeAllDirect(&commands.selectBarcodeHeight(num));
         },
         .Bw => {
             // Barcode width
             const arg = iter.next() orelse return error.MissingMacroArg;
             const num = try fmt.parseInt(u8, arg, 10);
-            try wrapping.writeAllDirect(&commands.setBarCodeWidth(num));
+            try printer.writeAllDirect(&commands.setBarCodeWidth(num));
         },
         .Bc => {
             // Barcode
@@ -225,40 +222,40 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *P
             const barcode = try commands.printBarcode(allocator, system, arg_data);
             defer allocator.free(barcode);
 
-            try wrapping.flushMaybeNewline();
-            try wrapping.writeAllDirect(barcode);
+            try printer.flushMaybeNewline();
+            try printer.writeAllDirect(barcode);
         },
         .Br => {
             // Manual line break
-            try wrapping.flushMaybeNewline();
+            try printer.flushMaybeNewline();
         },
         .Pc => {
             // Partial cut
-            try wrapping.flushMaybeNewline();
-            try wrapping.writeAllDirect(&commands.partial_cut);
+            try printer.flushMaybeNewline();
+            try printer.writeAllDirect(&commands.partial_cut);
         },
         .Fc => {
             // Feed and partial cut
             const arg = iter.next() orelse return error.MissingMacroArg;
             const num = try fmt.parseInt(u8, arg, 10);
-            try wrapping.flushMaybeNewline();
-            try wrapping.writeAllDirect(&commands.feedAndPartualCut(num));
+            try printer.flushMaybeNewline();
+            try printer.writeAllDirect(&commands.feedAndPartualCut(num));
         },
         .T1 => {
             // Text size 1
-            try wrapping.writeAllDirect(&commands.selectCharacterSize(0, 0));
+            try printer.writeAllDirect(&commands.selectCharacterSize(0, 0));
         },
         .T2 => {
             // Text size 2
-            try wrapping.writeAllDirect(&commands.selectCharacterSize(1, 1));
+            try printer.writeAllDirect(&commands.selectCharacterSize(1, 1));
         },
         .T3 => {
             // Text size 3
-            try wrapping.writeAllDirect(&commands.selectCharacterSize(2, 2));
+            try printer.writeAllDirect(&commands.selectCharacterSize(2, 2));
         },
         .T4 => {
             // Text size 4
-            try wrapping.writeAllDirect(&commands.selectCharacterSize(3, 3));
+            try printer.writeAllDirect(&commands.selectCharacterSize(3, 3));
         },
         .H1 => {
             // Headline 1
@@ -269,45 +266,45 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *P
             const arg = iter.rest();
             // empty iter
             iter.index = iter.buffer.len;
-            try wrapping.flushMaybeNewline();
-            try wrapping.writeAllDirect(&commands.selectCharacterSize(1, 1));
-            try wrapping.writeAll(arg);
-            try wrapping.writeAllDirect(&commands.selectCharacterSize(0, 0));
-            try wrapping.flushMaybeNewline();
+            try printer.flushMaybeNewline();
+            try printer.writeAllDirect(&commands.selectCharacterSize(1, 1));
+            try printer.writeAll(arg);
+            try printer.writeAllDirect(&commands.selectCharacterSize(0, 0));
+            try printer.flushMaybeNewline();
         },
         .H2 => {
             // Headline 2
             const arg = iter.rest();
             // empty iter
             iter.index = iter.buffer.len;
-            try wrapping.flushMaybeNewline();
-            try wrapping.writeAllDirect(&commands.selectCharacterSize(2, 2));
-            try wrapping.writeAll(arg);
-            try wrapping.writeAllDirect(&commands.selectCharacterSize(0, 0));
-            try wrapping.flushMaybeNewline();
+            try printer.flushMaybeNewline();
+            try printer.writeAllDirect(&commands.selectCharacterSize(2, 2));
+            try printer.writeAll(arg);
+            try printer.writeAllDirect(&commands.selectCharacterSize(0, 0));
+            try printer.flushMaybeNewline();
         },
         .H3 => {
             // Headline 3
             const arg = iter.rest();
             // empty iter
             iter.index = iter.buffer.len;
-            try wrapping.flushMaybeNewline();
-            try wrapping.writeAllDirect(&commands.selectCharacterSize(3, 3));
-            try wrapping.writeAll(arg);
-            try wrapping.writeAllDirect(&commands.selectCharacterSize(0, 0));
-            try wrapping.flushMaybeNewline();
+            try printer.flushMaybeNewline();
+            try printer.writeAllDirect(&commands.selectCharacterSize(3, 3));
+            try printer.writeAll(arg);
+            try printer.writeAllDirect(&commands.selectCharacterSize(0, 0));
+            try printer.flushMaybeNewline();
         },
         .Ww => {
             // Change word wrap
-            // Wrap length of 0 disables wrapping
+            // Wrap length of 0 disables printer
             const arg = iter.next() orelse return error.MissingMacroArg;
             const num = try fmt.parseInt(u8, arg, 10);
-            try wrapping.setWrap(num);
+            try printer.setWrap(num);
         },
 
     }
 
-    try wrapping.writeAll(iter.rest());
+    try printer.writeAll(iter.rest());
 }
 
 const macro_keywords = enum {
