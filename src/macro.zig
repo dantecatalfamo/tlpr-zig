@@ -4,11 +4,10 @@ const meta = std.meta;
 const fmt = std.fmt;
 const prnt = @import("printer.zig");
 const Printer = prnt.Printer;
-const WrappingPrinter = prnt.WrappingPrinter;
 const commands = @import("commands.zig");
 const raster_image = @import("raster_image.zig");
 
-pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *WrappingPrinter) !void {
+pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *Printer) !void {
     if (mem.eql(u8, line, "")) {
         try wrapping.writeAll("\n");
         return;

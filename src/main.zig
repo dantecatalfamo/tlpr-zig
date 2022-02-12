@@ -7,7 +7,7 @@ const macro = @import("macro.zig");
 const Threshold = raster_image.Threshold;
 const prnt = @import("printer.zig");
 const Printer = prnt.Printer;
-const WrappingPrinter = prnt.WrappingPrinter;
+const PrinterConnection = prnt.PrinterConnection;
 
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -33,8 +33,8 @@ pub fn main() anyerror!void {
     var macro_mode = false;
     var word_wrap: ?u8 = null;
 
+    var connection: PrinterConnection = undefined;
     var printer: Printer = undefined;
-    var wrapping: WrappingPrinter = undefined;
 
     const stdin = std.io.getStdIn().reader();
     const stdout = std.io.getStdOut().writer();
@@ -129,32 +129,32 @@ pub fn main() anyerror!void {
     }
 
     if (output_stdout) {
-        printer = Printer{ .file = stdout };
+        connection = PrinterConnection{ .file = stdout };
     } else {
-        printer = blk: {
+        connection = blk: {
             const addr = try std.net.Address.resolveIp(ip.?, 9100);
             const stream = try std.net.tcpConnectToAddress(addr);
-            break :blk Printer{ .socket = stream.writer() };
+            break :blk PrinterConnection{ .socket = stream.writer() };
         };
     }
 
-    wrapping = WrappingPrinter.init(printer);
+    printer = Printer.init(connection);
 
     if (word_wrap) |wrap_len| {
-      try wrapping.setWrap(wrap_len);
+      try printer.setWrap(wrap_len);
     }
 
     if (!no_initialize) {
-        try printer.writeAll(&commands.initialize);
+        try connection.writeAll(&commands.initialize);
     }
 
     if (justify) |justification| {
         if (mem.eql(u8, justification, "left")) {
-            try printer.writeAll(&commands.justification.left);
+            try connection.writeAll(&commands.justification.left);
         } else if (mem.eql(u8, justification, "center")) {
-            try printer.writeAll(&commands.justification.center);
+            try connection.writeAll(&commands.justification.center);
         } else if (mem.eql(u8, justification, "right")) {
-            try printer.writeAll(&commands.justification.right);
+            try connection.writeAll(&commands.justification.right);
         } else {
             usage();
         }
@@ -162,22 +162,22 @@ pub fn main() anyerror!void {
 
     if (underline) |ul| {
         if (ul == 1) {
-            try printer.writeAll(&commands.underline.one);
+            try connection.writeAll(&commands.underline.one);
         } else if (ul == 2) {
-            try printer.writeAll(&commands.underline.two);
+            try connection.writeAll(&commands.underline.two);
         }
     }
 
     if (emphasis) {
-        try printer.writeAll(&commands.emphasis.on);
+        try connection.writeAll(&commands.emphasis.on);
     }
 
     if (rotate) {
-        try printer.writeAll(&commands.clockwise_rotation_mode.on);
+        try connection.writeAll(&commands.clockwise_rotation_mode.on);
     }
 
     if (upside_down) {
-        try printer.writeAll(&commands.upside_down_mode.enable);
+        try connection.writeAll(&commands.upside_down_mode.enable);
     }
 
     if (char_height != null or char_width != null) {
@@ -195,21 +195,21 @@ pub fn main() anyerror!void {
 
         const h = @truncate(u3, (char_height orelse 1) - 1);
         const w = @truncate(u3, (char_width orelse 1) - 1);
-        try printer.writeAll(&commands.selectCharacterSize(h, w));
+        try connection.writeAll(&commands.selectCharacterSize(h, w));
     }
 
     if (reverse_black_white) {
-        try printer.writeAll(&commands.reverse_white_black_mode.on);
+        try connection.writeAll(&commands.reverse_white_black_mode.on);
     }
 
     if (alt_font) {
-        try printer.writeAll(&commands.character_font.font_b);
+        try connection.writeAll(&commands.character_font.font_b);
     }
 
     if (image_path) |path| {
         const image = try raster_image.imageToBitRaster(allocator, path, image_threshold);
         defer allocator.free(image);
-        try printer.writeAll(image);
+        try connection.writeAll(image);
     }
 
     if (macro_mode) {
@@ -218,12 +218,12 @@ pub fn main() anyerror!void {
             line_number += 1;
             const line = try stdin.readUntilDelimiterOrEof(read_buffer[0..], '\n');
             if (line) |valid_line| {
-                macro.processMacroLine(allocator, valid_line, &wrapping) catch |err| {
+                macro.processMacroLine(allocator, valid_line, &printer) catch |err| {
                     try stderr.print("Macro error on line {d}: {s}\n", .{ line_number, @errorName(err) });
                     return err;
                 };
             } else {
-                try printer.writeAll("\n");
+                try connection.writeAll("\n");
                 break;
             }
         }
@@ -231,8 +231,8 @@ pub fn main() anyerror!void {
         while (true) {
             const line = try stdin.readUntilDelimiterOrEof(read_buffer[0..], '\n');
             if (line) |valid_line| {
-                try wrapping.writeAll(valid_line);
-                try wrapping.writeAll("\n");
+                try printer.writeAll(valid_line);
+                try printer.writeAll("\n");
             } else {
                 break;
             }
@@ -240,7 +240,7 @@ pub fn main() anyerror!void {
     }
 
     if (cut) {
-        try printer.writeAll(&commands.feedAndPartualCut(0));
+        try connection.writeAll(&commands.feedAndPartualCut(0));
     }
 }
 

@@ -9,7 +9,7 @@ const BitImageMode = commands.BitImageMode;
 const raster_image = @import("raster_image.zig");
 const Threshold = raster_image.Threshold;
 
-pub const Printer = union(enum) {
+pub const PrinterConnection = union(enum) {
     file: std.fs.File.Writer,
     socket: std.net.Stream.Writer,
 
@@ -36,12 +36,12 @@ pub const Printer = union(enum) {
     }
 };
 
-pub const WrappingPrinter = struct {
+pub const Printer = struct {
     wrap_length: u8 = 0,
     index: usize = 0,
     last_space: usize = 0,
     buffer:  [256]u8 = undefined,
-    printer: Printer,
+    connection: PrinterConnection,
     wrapping_enabled: bool = false,
     font: Font = .a,
     character_size: u3 = 0,
@@ -66,9 +66,9 @@ pub const WrappingPrinter = struct {
     const WriteError = Printer.WriteError;
     const Writer = std.io.Writer(*Self, WriteError, write);
 
-    pub fn init(printer: Printer) Self {
+    pub fn init(connection: PrinterConnection) Self {
         return .{
-            .printer = printer,
+            .connection = connection,
         };
     }
 
@@ -78,14 +78,14 @@ pub const WrappingPrinter = struct {
 
     pub fn write(self: *Self, line: []const u8) !usize {
         if (!self.wrapping_enabled) {
-            try self.printer.writeAll(line);
+            try self.connection.writeAll(line);
             return line.len;
         }
 
         for (line) |char| {
             if (char == '\n') {
-                try self.printer.writeAll(self.buffer[0..self.index]);
-                try self.printer.writeAll("\n");
+                try self.connection.writeAll(self.buffer[0..self.index]);
+                try self.connection.writeAll("\n");
                 self.index = 0;
                 self.last_space = 0;
                 continue;
@@ -103,8 +103,8 @@ pub const WrappingPrinter = struct {
                         break :blk self.buffer[self.last_space+1..self.index];
                     break :blk self.buffer[self.last_space..self.index];
                 };
-                try self.printer.writeAll(self.buffer[0..self.last_space]);
-                try self.printer.writeAll("\n");
+                try self.connection.writeAll(self.buffer[0..self.last_space]);
+                try self.connection.writeAll("\n");
                 mem.copy(u8, self.buffer[0..], remaining);
                 self.index = remaining.len;
                 self.last_space = 0;
@@ -119,11 +119,11 @@ pub const WrappingPrinter = struct {
 
     pub fn writeAllDirect(self: *Self, line: []const u8) !void {
         _ = try self.flush();
-        return self.printer.writeAll(line);
+        return self.connection.writeAll(line);
     }
 
     pub fn flush(self: *Self) !usize {
-        try self.printer.writeAll(self.buffer[0..self.index]);
+        try self.connection.writeAll(self.buffer[0..self.index]);
         const old_index = self.index;
         self.index = 0;
         self.last_space = 0;
