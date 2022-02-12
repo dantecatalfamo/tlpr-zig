@@ -2,6 +2,9 @@ const std = @import("std");
 const mem = std.mem;
 const ascii = std.ascii;
 const debug = std.debug;
+const commands = @import("commands.zig");
+const raster_image = @import("raster_image.zig");
+const Threshold = raster_image.Threshold;
 
 pub const Printer = union(enum) {
     file: std.fs.File.Writer,
@@ -37,6 +40,16 @@ pub const WrappingPrinter = struct {
     buffer:  [256]u8 = undefined,
     printer: Printer,
     wrapping_disabled: bool = true,
+    font: Font = .a,
+    character_size: u3 = 0,
+    justification: Justification = .left,
+    underline: Underline = .none,
+    line_spacing: LineSpacing = .default,
+    emphasis: bool = false,
+    double_strike: bool = false,
+    clockwise_rotation: bool = false,
+    upside_down: bool = false,
+    inverted: bool = false,
 
     const Self = @This();
     const WriteError = Printer.WriteError;
@@ -106,8 +119,10 @@ pub const WrappingPrinter = struct {
         return old_index;
     }
 
-    pub fn flushNewline(self: *Self) !void {
-        try self.writeAll("\n");
+    pub fn flushMaybeNewline(self: *Self) !void {
+        if (self.index != 0 or self.wrapping_disabled) {
+            try self.writeAll("\n");
+        }
     }
 
     pub fn setWrap(self: *Self, length: u8) !void {
@@ -128,6 +143,119 @@ pub const WrappingPrinter = struct {
         _ = try self.flush();
         self.wrapping_disabled = true;
     }
+
+    pub fn setFont(self: *Self, font: Font) !void {
+        const command = switch (font) {
+            .a => commands.character_font.font_a,
+            .b => commands.character_font.font_b,
+        };
+        try self.writeAllDirect(&command);
+        self.font = font;
+    }
+
+    pub fn setCharacterSize(self: *Self, size: u3) !void {
+        try self.writeAllDirect(&commands.selectCharacterSize(size, size));
+        self.character_size = size;
+    }
+
+    pub fn initialize(self: *Self) !void {
+        try self.writeAllDirect(&commands.initialize);
+        self.font = .a;
+        self.character_size = 0;
+        self.justification = .left;
+        self.underline = .none;
+        self.line_spacing = .default;
+        self.emphasis = false;
+        self.double_strike = false;
+        self.clockwise_rotation = false;
+        self.upside_down = false;
+        self.inverted = false;
+    }
+
+    pub fn setJustification(self: *Self, justification: Justification) !void {
+        try self.flushMaybeNewline();
+        const command = switch (justification) {
+            .left => commands.justification.left,
+            .center => commands.justification.center,
+            .right => commands.justification.right,
+        };
+        try self.writeAllDirect(&command);
+        self.justification = justification;
+    }
+
+    pub fn setUnderline(self: *Self, underline: Underline) !void {
+        const command = switch (underline) {
+            .none => commands.underline.none,
+            .single => commands.underline.one,
+            .double => commands.underline.two,
+        };
+        try self.writeAllDirect(&command);
+        self.underline = underline;
+    }
+
+    pub fn setLineSpacing(self: *Self, line_spacing: LineSpacing) !void {
+        const command = switch (spacing) {
+            .default => commands.line_spacing.default,
+            .custom => commands.line_spacing.custom(spacing),
+        };
+        try self.writeAllDirect(&command);
+        self.line_spacing = line_spacing;
+    }
+
+    pub fn setEmphasis(self: *Self, enable: bool) !void {
+        const command = switch (enable) {
+            true => commands.emphasis.on,
+            false => commands.emphasis.off,
+        };
+        try self.writeAllDirect(&command);
+        self.emphasis = enable;
+    }
+
+    pub fn setDoubleStrike(self: *Self, enable: bool) !void {
+        const command = switch (enable) {
+            true => commands.double_strike.on,
+            false => commands.double_strike.off,
+        };
+        try self.writeAllDirect(&command);
+        self.double_strike = enable;
+    }
+
+    pub fn printAndFeed(self: *Self, units: u8) !void {
+        try self.flushMaybeNewline();
+        try self.writeAllDirect(&commands.printAndFeed(units));
+    }
+
+    pub fn printAndFeedLines(self: *Self, lines: u8) !void {
+        try self.flushMaybeNewline();
+        try self.writeAllDirect(&commands.printAndFeedLines(lines));
+    }
+
+    pub fn setClockwiseRotation(self: *Self, enable: bool) !void {
+        const command = switch (enable) {
+            true => commands.clockwise_rotation_mode.on,
+            false => commands.clockwise_rotation_mode.off,
+        };
+        try self.writeAllDirect(&command);
+        self.clockwise_rotation = enable;
+    }
+
+    pub fn setUpsideDown(self: *Self, enable: bool) !void {
+        const command = switch (enable) {
+            true => commands.upside_down_mode.enable,
+            false => commands.upside_down_mode.disable,
+        };
+        try self.writeAllDirect(&command);
+        self.upside_down = enable;
+    }
+
+    pub fn invert(self: *Self, enable: bool) !void {
+        const command = switch (enable) {
+            true => commands.reverse_white_black_mode.on,
+            false => commands.reverse_white_black_mode.off,
+        };
+        try self.writeAllDirect(&command);
+        self.inverted = enable;
+    }
 };
 
 /// Xprinter 80mm text line lengths in characters
@@ -144,4 +272,26 @@ pub const wrap_80mm = struct {
         size_3 = 21,
         size_4 = 16,
     };
+};
+
+pub const Font = enum {
+    a,
+    b,
+};
+
+pub const Justification = enum {
+    left,
+    right,
+    center,
+};
+
+pub const Underline = enum {
+    none,
+    single,
+    double,
+};
+
+pub const LineSpacing = union(enum) {
+    default,
+    custom: u8,
 };
