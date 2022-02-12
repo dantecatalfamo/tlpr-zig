@@ -253,7 +253,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, printer: *Pr
             try printer.setFont(.a);
             try printer.setEmphasis(false);
             try printer.setDoubleStrike(false);
-            try printer.setUnderline(false);
+            try printer.setUnderline(.none);
             try printer.setInverted(false);
             try printer.setClockwiseRotation(false);
             try printer.setUpsideDown(false);
