@@ -40,7 +40,8 @@ pub const Printer = struct {
     barcode_height: u8 = 162,
     barcode_width: u8 = 3,
     buffer:  [256]u8 = undefined,
-    character_size: u3 = 0,
+    character_height: u3 = 0,
+    character_width: u3 = 0,
     clockwise_rotation: bool = false,
     connection: PrinterConnection,
     double_strike: bool = false,
@@ -166,29 +167,37 @@ pub const Printer = struct {
 
     pub fn setCharacterSize(self: *Self, size: u3) !void {
         try self.writeAllDirect(&commands.selectCharacterSize(size, size));
-        self.character_size = size;
+        self.character_height = size;
+        self.character_width = size;
+    }
+
+    pub fn setCharacterSizeCustom(self: *Self, height: u3, width: u3) !void {
+        try self.writeAllDirect(&commands.selectCharacterSize(height, width));
+        self.character_height = height;
+        self.character_width = width;
     }
 
     pub fn initialize(self: *Self) !void {
         try self.writeAllDirect(&commands.initialize);
-        self.font = .a;
-        self.character_size = 0;
-        self.justification = .left;
-        self.underline = .none;
-        self.line_spacing = .default;
-        self.emphasis = false;
-        self.double_strike = false;
-        self.clockwise_rotation = false;
-        self.upside_down = false;
-        self.inverted = false;
         self.barcode_height = 162;
         self.barcode_width = 3;
-        self.hri_position = .not_printed;
+        self.character_height = 0;
+        self.character_width = 0;
+        self.clockwise_rotation = false;
+        self.double_strike = false;
+        self.emphasis = false;
+        self.font = .a;
         self.hri_font = .a;
+        self.hri_position = .not_printed;
+        self.inverted = false;
+        self.justification = .left;
         self.left_margin = 0;
+        self.line_spacing = .default;
         self.motion_units_x = 0;
         self.motion_units_y = 0;
         self.printing_area_width = 511;
+        self.underline = .none;
+        self.upside_down = false;
     }
 
     pub fn setJustification(self: *Self, justification: Justification) !void {
@@ -213,11 +222,10 @@ pub const Printer = struct {
     }
 
     pub fn setLineSpacing(self: *Self, line_spacing: LineSpacing) !void {
-        const command = switch (line_spacing) {
-            .default => commands.line_spacing.default,
-            .custom => commands.line_spacing.custom(line_spacing),
-        };
-        try self.writeAllDirect(&command);
+        switch (line_spacing) {
+            .default => try self.writeAllDirect(&commands.line_spacing.default),
+            .custom => |val| try self.writeAllDirect(&commands.line_spacing.custom(val)),
+        }
         self.line_spacing = line_spacing;
     }
 
@@ -267,7 +275,7 @@ pub const Printer = struct {
         self.upside_down = enable;
     }
 
-    pub fn invert(self: *Self, enable: bool) !void {
+    pub fn setInverted(self: *Self, enable: bool) !void {
         const command = switch (enable) {
             true => commands.reverse_white_black_mode.on,
             false => commands.reverse_white_black_mode.off,
@@ -402,7 +410,6 @@ pub const Printer = struct {
     pub fn setPrintPosition(self: *Self, units: u16) !void {
         try self.writeAllDirect(&commands.setPrintPosition(units));
     }
-
 };
 
 /// Xprinter 80mm text line lengths in characters
