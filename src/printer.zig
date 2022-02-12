@@ -37,30 +37,30 @@ pub const PrinterConnection = union(enum) {
 };
 
 pub const Printer = struct {
-    wrap_length: u8 = 0,
-    index: usize = 0,
-    last_space: usize = 0,
-    buffer:  [256]u8 = undefined,
-    connection: PrinterConnection,
-    wrapping_enabled: bool = false,
-    font: Font = .a,
-    character_size: u3 = 0,
-    justification: Justification = .left,
-    underline: Underline = .none,
-    line_spacing: LineSpacing = .default,
-    emphasis: bool = false,
-    double_strike: bool = false,
-    clockwise_rotation: bool = false,
-    upside_down: bool = false,
-    inverted: bool = false,
-    hri_font: Font = .a,
     barcode_height: u8 = 162,
     barcode_width: u8 = 3,
+    buffer:  [256]u8 = undefined,
+    character_size: u3 = 0,
+    clockwise_rotation: bool = false,
+    connection: PrinterConnection,
+    double_strike: bool = false,
+    emphasis: bool = false,
+    font: Font = .a,
+    hri_font: Font = .a,
     hri_position: HriPosition = .not_printed,
+    index: usize = 0,
+    inverted: bool = false,
+    justification: Justification = .left,
+    last_space: usize = 0,
     left_margin: u16 = 0,
+    line_spacing: LineSpacing = .default,
     motion_units_x: u8 = 0, // 180
     motion_units_y: u8 = 0, // 360
     printing_area_width: u16 = 511, // for 80mm printer. 58mm is 359
+    underline: Underline = .none,
+    upside_down: bool = false,
+    wrap_length: u8 = 0,
+    wrapping_enabled: bool = false,
 
     const Self = @This();
     const WriteError = Printer.WriteError;
