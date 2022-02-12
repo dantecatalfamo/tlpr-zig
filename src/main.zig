@@ -4,7 +4,6 @@ const mem = std.mem;
 const commands = @import("./commands.zig");
 const raster_image = @import("./raster_image.zig");
 const macro = @import("macro.zig");
-const wrap = @import("wrap.zig");
 const Threshold = raster_image.Threshold;
 const prnt = @import("printer.zig");
 const Printer = prnt.Printer;
@@ -233,7 +232,7 @@ pub fn main() anyerror!void {
             const line = try stdin.readUntilDelimiterOrEof(read_buffer[0..], '\n');
             if (line) |valid_line| {
                 try wrapping.writeAll(valid_line);
-                try wrapping.flushNewline();
+                try wrapping.writeAll("\n");
             } else {
                 break;
             }

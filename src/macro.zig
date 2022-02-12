@@ -7,7 +7,6 @@ const Printer = prnt.Printer;
 const WrappingPrinter = prnt.WrappingPrinter;
 const commands = @import("commands.zig");
 const raster_image = @import("raster_image.zig");
-const wrap = @import("wrap.zig");
 
 pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *WrappingPrinter) !void {
     if (mem.eql(u8, line, "")) {
@@ -32,19 +31,19 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *W
         .Jl => {
             // Justify left
             // Writes newline first
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
             try wrapping.writeAllDirect(&commands.justification.left);
         },
         .Jc => {
             // Justify center
             // Writes newline first
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
             try wrapping.writeAllDirect(&commands.justification.center);
         },
         .Jr => {
             // Justify right
             // Writes newline first
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
             try wrapping.writeAllDirect(&commands.justification.right);
         },
         .Pp => {
@@ -99,7 +98,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *W
             // Print and Feed
             const arg = iter.next() orelse return error.MissingMacroArg;
             const num = try fmt.parseInt(u8, arg, 10);
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
             try wrapping.writeAllDirect(&commands.printAndFeed(num));
         },
         .Fa => {
@@ -130,7 +129,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *W
             // Print and feed lines
             const arg = iter.next() orelse return error.MissingMacroArg;
             const num = try fmt.parseInt(u8, arg, 10);
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
             try wrapping.writeAllDirect(&commands.printAndFeedLines(num));
         },
         .Ud => {
@@ -172,7 +171,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *W
 
             const img = try raster_image.imageToBitRaster(allocator, path, threshold);
             defer allocator.free(img);
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
             try wrapping.writeAllDirect(img);
         },
         .Hp => {
@@ -192,9 +191,9 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *W
             const num_wait = try fmt.parseInt(u8, arg_wait, 10);
             const mode = blk: {
                 if (mem.eql(u8, arg_mode, "cont")) {
-                    break :blk commands.execute_macro_mode.continuous;
+                    break :blk commands.ExecuteMacroMode.continuous;
                 } else if (mem.eql(u8, arg_mode, "button")) {
-                    break :blk commands.execute_macro_mode.on_feed_button;
+                    break :blk commands.ExecuteMacroMode.on_feed_button;
                 } else {
                     return error.InvalidMacroArg;
                 }
@@ -222,28 +221,28 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *W
             const arg_data = iter.rest();
             // empty iter
             iter.index = iter.buffer.len;
-            const system = meta.stringToEnum(commands.barcode_system, arg_system) orelse return error.InvalidBarcodeSystem;
+            const system = meta.stringToEnum(commands.BarcodeSystem, arg_system) orelse return error.InvalidBarcodeSystem;
 
             const barcode = try commands.printBarcode(allocator, system, arg_data);
             defer allocator.free(barcode);
 
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
             try wrapping.writeAllDirect(barcode);
         },
         .Br => {
             // Manual line break
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
         },
         .Pc => {
             // Partial cut
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
             try wrapping.writeAllDirect(&commands.partial_cut);
         },
         .Fc => {
             // Feed and partial cut
             const arg = iter.next() orelse return error.MissingMacroArg;
             const num = try fmt.parseInt(u8, arg, 10);
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
             try wrapping.writeAllDirect(&commands.feedAndPartualCut(num));
         },
         .T1 => {
@@ -271,33 +270,33 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, wrapping: *W
             const arg = iter.rest();
             // empty iter
             iter.index = iter.buffer.len;
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
             try wrapping.writeAllDirect(&commands.selectCharacterSize(1, 1));
             try wrapping.writeAll(arg);
             try wrapping.writeAllDirect(&commands.selectCharacterSize(0, 0));
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
         },
         .H2 => {
             // Headline 2
             const arg = iter.rest();
             // empty iter
             iter.index = iter.buffer.len;
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
             try wrapping.writeAllDirect(&commands.selectCharacterSize(2, 2));
             try wrapping.writeAll(arg);
             try wrapping.writeAllDirect(&commands.selectCharacterSize(0, 0));
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
         },
         .H3 => {
             // Headline 3
             const arg = iter.rest();
             // empty iter
             iter.index = iter.buffer.len;
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
             try wrapping.writeAllDirect(&commands.selectCharacterSize(3, 3));
             try wrapping.writeAll(arg);
             try wrapping.writeAllDirect(&commands.selectCharacterSize(0, 0));
-            try wrapping.flushNewline();
+            try wrapping.flushMaybeNewline();
         },
         .Ww => {
             // Change word wrap

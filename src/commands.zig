@@ -101,7 +101,7 @@ pub fn setPrintPosition(motion_units: u16) [4]u8 {
 /// d2 d5 d8 ->
 /// d3 d6 d9
 /// Caller is responsible for freeing returned memory
-pub fn bitImageMode(allocator: mem.Allocator, mode: bit_image_mode, image_data: []const u8) ![]u8 {
+pub fn bitImageMode(allocator: mem.Allocator, mode: BitImageMode, image_data: []const u8) ![]u8 {
     const tall = (mode == .single_density_24 or mode == .double_density_24);
     const image_width = if (tall) image_data.len / 3 else image_data.len;
     const nl = @truncate(u8, image_width & 0xFF);
@@ -111,7 +111,7 @@ pub fn bitImageMode(allocator: mem.Allocator, mode: bit_image_mode, image_data: 
     return mem.concat(allocator, u8, &slices);
 }
 
-pub fn comptimeBitImageMode(comptime mode: bit_image_mode, comptime image_data: []const u8) []const u8 {
+pub fn comptimeBitImageMode(comptime mode: BitImageMode, comptime image_data: []const u8) []const u8 {
     const tall = (mode == .single_density_24 or mode == .double_density_24);
     const image_width = if (tall) image_data.len / 3 else image_data.len;
     const nl = @truncate(u8, image_width & 0xFF);
@@ -124,7 +124,7 @@ test "comptime bit image" {
     _ = comptime comptimeBitImageMode(.single_density_8, &[_]u8{ 1, 2, 3, 4 });
 }
 
-const bit_image_mode = enum(u8) {
+const BitImageMode = enum(u8) {
     single_density_8 = 0,
     double_density_8 = 1,
     single_density_24 = 32,
@@ -305,7 +305,7 @@ pub const justification = struct {
 // yet
 
 /// Selects the paper sensor(s) used to stop printing when a paper-end is detected
-pub fn stopPrintingSensor(options: stop_printing_sensor) [4]u8 {
+pub fn stopPrintingSensor(options: StopPrintingSensor) [4]u8 {
     var n = 0;
     if (options.paper_roll_end) {
         n |= 0x01;
@@ -316,7 +316,7 @@ pub fn stopPrintingSensor(options: stop_printing_sensor) [4]u8 {
     return [_]u8{ ESC, 'c', '4', n };
 }
 
-pub const stop_printing_sensor = struct {
+pub const StopPrintingSensor = struct {
     paper_roll_end: bool,
     paper_roll_near_end: bool,
 };
@@ -485,7 +485,9 @@ pub const select_hri_characters_printing_position = struct {
 };
 
 /// Sets the left margin using nL and nH.
-/// The left margin is set to [(nL + nH X 256) X (horizontal motion unit)] inches.
+/// The left margin is set to [(nL + nH X 256) X (horizontal motion
+/// unit)] inches.
+/// Default = 0
 pub fn setLeftMargin(units: u16) [4]u8 {
     const split_units = splitU16(units);
     [_]u8{ GS, 'L', split_units.l, split_units.h };
@@ -525,11 +527,11 @@ pub fn setPageModeRelativeVerticalPrintPosition(units: u16) [4]u8 {
 
 /// Executes a macro.
 /// The waiting time is t × 100 ms for every macro execution.
-pub fn executeMacro(times: u8, wait_time: u8, mode: execute_macro_mode) [5]u8 {
+pub fn executeMacro(times: u8, wait_time: u8, mode: ExecuteMacroMode) [5]u8 {
     return [_]u8{ GS, '^', times, wait_time, @enumToInt(mode) };
 }
 
-pub const execute_macro_mode = enum {
+pub const ExecuteMacroMode = enum {
     continuous,
     on_feed_button
 };
@@ -550,7 +552,7 @@ pub fn selectBarcodeHeight(n: u8) [3]u8 {
 }
 
 /// Selects a barcode system and prints the barcode.
-pub fn printBarcode(allocator: mem.Allocator, code_system: barcode_system, data: []const u8) ![]u8 {
+pub fn printBarcode(allocator: mem.Allocator, code_system: BarcodeSystem, data: []const u8) ![]u8 {
     try validBarcode(code_system, data);
     const preamble = [_]u8{ GS, 'k', @enumToInt(code_system), @truncate(u8, data.len) };
     const slices = [_] []const u8{ &preamble, data };
@@ -558,7 +560,7 @@ pub fn printBarcode(allocator: mem.Allocator, code_system: barcode_system, data:
 }
 
 /// Selects a barcode system and prints the barcode.
-pub fn comptimePrintBarcode(comptime code_system: barcode_system, comptime data: []const u8) []const u8 {
+pub fn comptimePrintBarcode(comptime code_system: BarcodeSystem, comptime data: []const u8) []const u8 {
     validBarcode(code_system, data) catch |err| @compileError(@errorName(err));
     const preamble = [_]u8{ GS, 'k', @enumToInt(code_system), @truncate(u8, data.len) };
     return preamble ++ data;
@@ -569,7 +571,7 @@ test "comptime barcode" {
 }
 
 /// Checks the validity of a barcode according to a system.
-pub fn validBarcode(code_system: barcode_system, data: []const u8) !void {
+pub fn validBarcode(code_system: BarcodeSystem, data: []const u8) !void {
     const min_chars: u8 = switch(code_system) {
         .upc_a, .upc_e => 11,
         .jan13 => 12,
@@ -627,7 +629,7 @@ pub fn validBarcode(code_system: barcode_system, data: []const u8) !void {
     }
 }
 
-pub const barcode_system = enum(u8) {
+pub const BarcodeSystem = enum(u8) {
     upc_a = 65,
     upc_e = 66,
     /// EAN13

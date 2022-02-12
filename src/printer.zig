@@ -3,6 +3,9 @@ const mem = std.mem;
 const ascii = std.ascii;
 const debug = std.debug;
 const commands = @import("commands.zig");
+const ExecuteMacroMode = commands.ExecuteMacroMode;
+const BarcodeSystem = commands.BarcodeSystem;
+const BitImageMode = commands.BitImageMode;
 const raster_image = @import("raster_image.zig");
 const Threshold = raster_image.Threshold;
 
@@ -39,7 +42,7 @@ pub const WrappingPrinter = struct {
     last_space: usize = 0,
     buffer:  [256]u8 = undefined,
     printer: Printer,
-    wrapping_disabled: bool = true,
+    wrapping_enabled: bool = false,
     font: Font = .a,
     character_size: u3 = 0,
     justification: Justification = .left,
@@ -50,6 +53,14 @@ pub const WrappingPrinter = struct {
     clockwise_rotation: bool = false,
     upside_down: bool = false,
     inverted: bool = false,
+    hri_font: Font = .a,
+    barcode_height: u8 = 162,
+    barcode_width: u8 = 3,
+    hri_position: HriPosition = .not_printed,
+    left_margin: u16 = 0,
+    motion_units_x: u8 = 0, // 180
+    motion_units_y: u8 = 0, // 360
+    printing_area_width: u16 = 511, // for 80mm printer. 58mm is 359
 
     const Self = @This();
     const WriteError = Printer.WriteError;
@@ -66,7 +77,7 @@ pub const WrappingPrinter = struct {
     }
 
     pub fn write(self: *Self, line: []const u8) !usize {
-        if (self.wrapping_disabled) {
+        if (!self.wrapping_enabled) {
             try self.printer.writeAll(line);
             return line.len;
         }
@@ -120,7 +131,7 @@ pub const WrappingPrinter = struct {
     }
 
     pub fn flushMaybeNewline(self: *Self) !void {
-        if (self.index != 0 or self.wrapping_disabled) {
+        if (self.index != 0 or !self.wrapping_enabled) {
             try self.writeAll("\n");
         }
     }
@@ -128,20 +139,20 @@ pub const WrappingPrinter = struct {
     pub fn setWrap(self: *Self, length: u8) !void {
         _ = try self.flush();
         if (length == 0) {
-            try self.disableWrapping();
+            try self.enableWrapping(false);
         } else {
-            self.enableWrapping();
+            try self.enableWrapping(true);
         }
         self.wrap_length = length;
     }
 
-    pub fn enableWrapping(self: *Self) void {
-        self.wrapping_disabled = false;
-    }
-
-    pub fn disableWrapping(self: *Self) !void {
-        _ = try self.flush();
-        self.wrapping_disabled = true;
+    pub fn enableWrapping(self: *Self, enable: bool) !void {
+        if (enable) {
+            _ = try self.flush();
+            self.wrapping_enabled = false;
+        } else {
+            self.wrapping_enabled = true;
+        }
     }
 
     pub fn setFont(self: *Self, font: Font) !void {
@@ -170,6 +181,14 @@ pub const WrappingPrinter = struct {
         self.clockwise_rotation = false;
         self.upside_down = false;
         self.inverted = false;
+        self.barcode_height = 162;
+        self.barcode_width = 3;
+        self.hri_position = .not_printed;
+        self.hri_font = .a;
+        self.left_margin = 0;
+        self.motion_units_x = 0;
+        self.motion_units_y = 0;
+        self.printing_area_width = 511;
     }
 
     pub fn setJustification(self: *Self, justification: Justification) !void {
@@ -194,9 +213,9 @@ pub const WrappingPrinter = struct {
     }
 
     pub fn setLineSpacing(self: *Self, line_spacing: LineSpacing) !void {
-        const command = switch (spacing) {
+        const command = switch (line_spacing) {
             .default => commands.line_spacing.default,
-            .custom => commands.line_spacing.custom(spacing),
+            .custom => commands.line_spacing.custom(line_spacing),
         };
         try self.writeAllDirect(&command);
         self.line_spacing = line_spacing;
@@ -256,6 +275,129 @@ pub const WrappingPrinter = struct {
         try self.writeAllDirect(&command);
         self.inverted = enable;
     }
+
+    pub fn printImageFromFile(self: *Self, allocator: mem.Allocator, path: []const u8, threshold: Threshold) !void {
+        const img = try raster_image.imageToBitRaster(allocator, path, threshold);
+        defer allocator.free(img);
+        try self.flushMaybeNewline();
+        try self.writeAllDirect(img);
+    }
+
+    pub fn defineMacro(self: *Self) !void {
+        try self.writeAllDirect(&commands.start_or_end_macro_definition);
+    }
+
+    pub fn executeMacro(self: *Self, times: u8, wait: u8, mode: ExecuteMacroMode) !void {
+        try self.writeAllDirect(&commands.executeMacro(times, wait, mode));
+    }
+
+    pub fn setBarcodeHeight(self: *Self, height: u8) !void {
+        try self.writeAllDirect(&commands.selectBarcodeHeight(height));
+        self.barcode_height = height;
+    }
+
+    pub fn setBarcodeWidth(self: *Self, width: u8) !void {
+        try self.writeAllDirect(&commands.setBarCodeWidth(width));
+        self.barcode_width = width;
+    }
+
+    pub fn printBarcode(self: *Self, allocator: mem.Allocator, barcode_system: BarcodeSystem, data: []const u8) !void {
+        const barcode = try commands.printBarcode(allocator, barcode_system, data);
+        defer allocator.free(barcode);
+        try self.flushMaybeNewline();
+        try self.writeAllDirect(barcode);
+    }
+
+    pub fn setHriPosition(self: *Self, position: HriPosition) !void {
+        const command = switch (position) {
+            .not_printed => commands.select_hri_characters_printing_position.not_printed,
+            .above_barcode => commands.select_hri_characters_printing_position.above_bar_code,
+            .below_barcode => commands.select_hri_characters_printing_position.below_bar_code,
+            .above_and_below_barcode => commands.select_hri_characters_printing_position.above_and_below_bar_code,
+        };
+        try self.writeAllDirect(&command);
+        self.hri_position = position;
+    }
+
+    pub fn setHriFont(self: *Self, font: Font) !void {
+        const command = switch (font) {
+            .a => commands.hri_font.font_a,
+            .b => commands.hri_font.font_b,
+        };
+        try self.writeAllDirect(&command);
+        self.hri_font = font;
+    }
+
+    pub fn partialCut(self: *Self) !void {
+        try self.writeAllDirect(&commands.partial_cut);
+    }
+
+    pub fn feedAndPartialCut(self: *Self, units: u8) !void {
+        try self.flushMaybeNewline();
+        try self.writeAllDirect(&commands.feedAndPartualCut(units));
+    }
+
+    pub fn printBitImage(self: *Self, allocator: mem.Allocator, mode: BitImageMode, image_data: []const u8) !void {
+        try self.writeAllDirect(&commands.bitImageMode(allocator, mode, image_data));
+    }
+
+    pub fn enablePeripheralDevice(self: *Self, enable: bool) !void {
+        const command = switch (enable) {
+            true => commands.peripheral_device.enable,
+            false => commands.peripheral_device.disable,
+        };
+        try self.writeAllDirect(&command);
+    }
+
+    pub fn enablePanelButtons(self: *Self, enable: bool) !void {
+        const command = switch (enable) {
+            true => commands.panel_buttons.enable,
+            false => commands.panel_buttons.disable,
+        };
+        try self.writeAllDirect(&command);
+    }
+
+    pub fn setCharacterCodeTable(self: *Self, code_table: CharacterCodeTable) !void {
+        const command = switch (code_table) {
+            .usa_standard_europe, .pc437 => commands.character_code_table.pc437,
+            .katakana => commands.character_code_table.katakana,
+            .multilingual, .pc850 => commands.character_code_table.pc850,
+            .portuguese, .pc860 => commands.character_code_table.pc860,
+            .canadian_french, .pc863 => commands.character_code_table.pc863,
+            .nodic, .pc865 => commands.character_code_table.pc865,
+            .west_europe => commands.character_code_table.west_europe,
+            .greek => commands.character_code_table.greek,
+            .hebrew => commands.character_code_table.hebrew,
+            .east_europe, .pc755 => commands.character_code_table.pc755,
+            .iran => commands.character_code_table.iran,
+            .wpc1252 => commands.character_code_table.wpc1252,
+            .cyrillic2, .pc866 => commands.character_code_table.pc866,
+            .latin2, .pc852 => commands.character_code_table.pc852,
+            .pc858 => commands.character_code_table.pc858,
+            .iranii => commands.character_code_table.iranii,
+            .latvian => commands.character_code_table.latvian,
+        };
+        try self.writeAllDirect(&command);
+    }
+
+    pub fn setLeftMargin(self: *Self, units: u16) !void {
+        try self.flushMaybeNewline();
+        try self.writeAllDirect(&commands.setLeftMargin(units));
+        self.left_margin = units;
+    }
+
+    pub fn setMotionUnits(self: *Self, x: u8, y: u8) !void {
+        try self.flushMaybeNewline();
+        try self.writeAllDirect(&commands.setMotionUnits(x, y));
+        self.motion_units_x = x;
+        self.motion_units_y = y;
+    }
+
+    pub fn setPrintingAreaWidth(self: *Self, units: u16) !void {
+        try self.flushMaybeNewline();
+        try self.writeAllDirect(&commands.setPrintingAreaWidth(units));
+        self.printing_area_width = units;
+    }
 };
 
 /// Xprinter 80mm text line lengths in characters
@@ -294,4 +436,39 @@ pub const Underline = enum {
 pub const LineSpacing = union(enum) {
     default,
     custom: u8,
+};
+
+pub const HriPosition = enum {
+    not_printed,
+    above_barcode,
+    below_barcode,
+    above_and_below_barcode,
+};
+
+pub const CharacterCodeTable = enum {
+    usa_standard_europe,
+    pc437,
+    katakana,
+    multilingual,
+    pc850,
+    portuguese,
+    pc860,
+    canadian_french,
+    pc863,
+    nodic,
+    pc865,
+    west_europe,
+    greek,
+    hebrew,
+    east_europe,
+    pc755,
+    iran,
+    wpc1252,
+    cyrillic2,
+    pc866,
+    latin2,
+    pc852,
+    pc858,
+    iranii,
+    latvian,
 };
