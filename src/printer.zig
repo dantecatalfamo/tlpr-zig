@@ -60,8 +60,9 @@ pub const Printer = struct {
     printing_area_width: u16 = 511, // for 80mm printer. 58mm is 359
     underline: Underline = .none,
     upside_down: bool = false,
+    wrap_auto: bool = false,
     wrap_length: u8 = 0,
-    wrapping_enabled: bool = false,
+    wrap_enabled: bool = false,
 
     const Self = @This();
     const WriteError = Printer.WriteError;
@@ -78,7 +79,7 @@ pub const Printer = struct {
     }
 
     pub fn write(self: *Self, line: []const u8) !usize {
-        if (!self.wrapping_enabled) {
+        if (!self.wrap_enabled or self.wrap_length == 0) {
             try self.connection.writeAll(line);
             return line.len;
         }
@@ -132,7 +133,7 @@ pub const Printer = struct {
     }
 
     pub fn flushMaybeNewline(self: *Self) !void {
-        if (self.index != 0 or !self.wrapping_enabled) {
+        if (self.index != 0 or !self.wrap_enabled) {
             try self.writeAll("\n");
         }
     }
@@ -149,10 +150,10 @@ pub const Printer = struct {
 
     pub fn enableWrapping(self: *Self, enable: bool) !void {
         if (enable) {
-            _ = try self.flush();
-            self.wrapping_enabled = false;
+            self.wrap_enabled = true;
         } else {
-            self.wrapping_enabled = true;
+            _ = try self.flush();
+            self.wrap_enabled = false;
         }
     }
 
@@ -162,17 +163,26 @@ pub const Printer = struct {
             .b => commands.character_font.font_b,
         };
         try self.writeAllDirect(&command);
+        if (self.wrap_auto) {
+            try self.recalculateAutoWrap();
+        }
         self.font = font;
     }
 
     pub fn setCharacterSize(self: *Self, size: u3) !void {
         try self.writeAllDirect(&commands.selectCharacterSize(size, size));
+        if (self.wrap_auto) {
+            try self.recalculateAutoWrap();
+        }
         self.character_height = size;
         self.character_width = size;
     }
 
     pub fn setCharacterSizeCustom(self: *Self, height: u3, width: u3) !void {
         try self.writeAllDirect(&commands.selectCharacterSize(height, width));
+        if (self.wrap_auto) {
+            try self.recalculateAutoWrap();
+        }
         self.character_height = height;
         self.character_width = width;
     }
@@ -410,21 +420,51 @@ pub const Printer = struct {
     pub fn setPrintPosition(self: *Self, units: u16) !void {
         try self.writeAllDirect(&commands.setPrintPosition(units));
     }
+
+    pub fn setWrapAuto(self: *Self, enable: bool) !void {
+        self.wrap_auto = enable;
+        try recalculateAutoWrap();
+    }
+
+    pub fn getWrapLength(font: Font, size: u3) u8 {
+        if (font == .a) {
+            return switch (size) {
+                0 => wrap_values.font_a.size_0,
+                1 => wrap_values.font_a.size_1,
+                2 => wrap_values.font_a.size_2,
+                3 => wrap_values.font_a.size_3,
+                else => 0,
+            };
+        } else {
+            return switch (size) {
+                0 => wrap_values.font_b.size_0,
+                1 => wrap_values.font_b.size_1,
+                2 => wrap_values.font_b.size_2,
+                3 => wrap_values.font_b.size_3,
+                else => 0,
+            };
+        }
+    }
+
+    pub fn recalculateAutoWrap(self: *Self) !void {
+        const length = getWrapLength(self.font, self.character_width);
+        try self.setWrap(length);
+    }
 };
 
 /// Xprinter 80mm text line lengths in characters
-pub const wrap_80mm = struct {
-    pub const font_a = enum(u8) {
-        size_1 = 48,
-        size_2 = 34,
-        size_3 = 16,
-        size_4 = 12,
+pub const wrap_values = struct {
+    pub const font_a = struct {
+        pub const size_0: u8 = 48;
+        pub const size_1: u8 = 34;
+        pub const size_2: u8 = 16;
+        pub const size_3: u8 = 12;
     };
-    pub const font_b = enum(u8) {
-        size_1 = 64,
-        size_2 = 32,
-        size_3 = 21,
-        size_4 = 16,
+    pub const font_b = struct {
+        pub const size_0: u8 = 64;
+        pub const size_1: u8 = 32;
+        pub const size_2: u8 = 21;
+        pub const size_3: u8 = 16;
     };
 };
 
