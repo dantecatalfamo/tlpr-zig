@@ -247,6 +247,17 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, printer: *Pr
             // Text size 4
             try printer.setCharacterSize(3);
         },
+        .Tr => {
+            // Text reset
+            try printer.setCharacterSize(0);
+            try printer.setFont(.a);
+            try printer.setEmphasis(false);
+            try printer.setDoubleStrike(false);
+            try printer.setUnderline(false);
+            try printer.setInverted(false);
+            try printer.setClockwiseRotation(false);
+            try printer.setUpsideDown(false);
+        },
         .H1 => {
             // Headline 1
             // Headline 1 = Text size 2 ++ arg ++ Text size 1 ++ newline
