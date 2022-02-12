@@ -356,6 +356,7 @@ const macro_keywords = enum {
     T2,
     T3,
     T4,
+    Tr,
     Ud,
     Un,
     Uo,
