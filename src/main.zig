@@ -145,16 +145,16 @@ pub fn main() anyerror!void {
     }
 
     if (!no_initialize) {
-        try connection.writeAll(&commands.initialize);
+        try printer.initialize();
     }
 
     if (justify) |justification| {
         if (mem.eql(u8, justification, "left")) {
-            try connection.writeAll(&commands.justification.left);
+            try printer.setJustification(.left);
         } else if (mem.eql(u8, justification, "center")) {
-            try connection.writeAll(&commands.justification.center);
+            try printer.setJustification(.center);
         } else if (mem.eql(u8, justification, "right")) {
-            try connection.writeAll(&commands.justification.right);
+            try printer.setJustification(.right);
         } else {
             usage();
         }
@@ -162,22 +162,22 @@ pub fn main() anyerror!void {
 
     if (underline) |ul| {
         if (ul == 1) {
-            try connection.writeAll(&commands.underline.one);
+            try printer.setUnderline(.single);
         } else if (ul == 2) {
-            try connection.writeAll(&commands.underline.two);
+            try printer.setUnderline(.double);
         }
     }
 
     if (emphasis) {
-        try connection.writeAll(&commands.emphasis.on);
+        try printer.setEmphasis(true);
     }
 
     if (rotate) {
-        try connection.writeAll(&commands.clockwise_rotation_mode.on);
+        try printer.setClockwiseRotation(true);
     }
 
     if (upside_down) {
-        try connection.writeAll(&commands.upside_down_mode.enable);
+        try printer.setUpsideDown(true);
     }
 
     if (char_height != null or char_width != null) {
@@ -195,21 +195,19 @@ pub fn main() anyerror!void {
 
         const h = @truncate(u3, (char_height orelse 1) - 1);
         const w = @truncate(u3, (char_width orelse 1) - 1);
-        try connection.writeAll(&commands.selectCharacterSize(h, w));
+        try printer.setCharacterSizeCustom(h, w);
     }
 
     if (reverse_black_white) {
-        try connection.writeAll(&commands.reverse_white_black_mode.on);
+        try printer.setInverted(true);
     }
 
     if (alt_font) {
-        try connection.writeAll(&commands.character_font.font_b);
+        try printer.setFont(.b);
     }
 
     if (image_path) |path| {
-        const image = try raster_image.imageToBitRaster(allocator, path, image_threshold);
-        defer allocator.free(image);
-        try connection.writeAll(image);
+        try printer.printImageFromFile(allocator, path, image_threshold);
     }
 
     if (macro_mode) {
@@ -240,7 +238,7 @@ pub fn main() anyerror!void {
     }
 
     if (cut) {
-        try connection.writeAll(&commands.feedAndPartualCut(0));
+        try printer.feedAndPartialCut(0);
     }
 }
 

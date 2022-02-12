@@ -188,6 +188,7 @@ pub const Printer = struct {
     }
 
     pub fn initialize(self: *Self) !void {
+        try self.flushMaybeNewline();
         try self.writeAllDirect(&commands.initialize);
         self.barcode_height = 162;
         self.barcode_width = 3;
