@@ -451,6 +451,25 @@ pub const Printer = struct {
         const length = getWrapLength(self.font, self.character_width);
         try self.setWrap(length);
     }
+
+    pub fn resetInlineFormatting(self: *Self) !void {
+        if (self.character_width != 0)
+            try self.setCharacterSize(0);
+        if (self.font != .a)
+            try self.setFont(.a);
+        if (self.emphasis)
+            try self.setEmphasis(false);
+        if (self.double_strike)
+            try self.setDoubleStrike(false);
+        if (self.underline != .none)
+            try self.setUnderline(.none);
+        if (self.inverted)
+            try self.setInverted(false);
+        if (self.clockwise_rotation)
+            try self.setClockwiseRotation(false);
+        if (self.upside_down)
+            try self.setUpsideDown(false);
+    }
 };
 
 /// Xprinter 80mm text line lengths in characters

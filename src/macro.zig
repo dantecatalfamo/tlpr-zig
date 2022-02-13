@@ -249,22 +249,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, printer: *Pr
         },
         .Tr => {
             // Text reset
-            if (printer.character_width != 0)
-                try printer.setCharacterSize(0);
-            if (printer.font != .a)
-                try printer.setFont(.a);
-            if (printer.emphasis)
-                try printer.setEmphasis(false);
-            if (printer.double_strike)
-                try printer.setDoubleStrike(false);
-            if (printer.underline != .none)
-                try printer.setUnderline(.none);
-            if (printer.inverted)
-                try printer.setInverted(false);
-            if (printer.clockwise_rotation)
-                try printer.setClockwiseRotation(false);
-            if (printer.upside_down)
-                try printer.setUpsideDown(false);
+            try printer.resetInlineFormatting();
         },
         .H1 => {
             // Headline 1
