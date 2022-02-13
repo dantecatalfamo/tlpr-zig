@@ -42,6 +42,7 @@ pub const Printer = struct {
     buffer:  [256]u8 = undefined,
     character_height: u3 = 0,
     character_width: u3 = 0,
+    characters_since_newline: usize = 0,
     clockwise_rotation: bool = false,
     connection: PrinterConnection,
     double_strike: bool = false,
@@ -79,6 +80,14 @@ pub const Printer = struct {
     }
 
     pub fn write(self: *Self, line: []const u8) !usize {
+        for (line) |char| {
+            if (char != '\n') {
+                self.characters_since_newline += 1;
+            } else {
+                self.characters_since_newline = 0;
+            }
+        }
+
         if (!self.wrap_enabled or self.wrap_length == 0) {
             try self.connection.writeAll(line);
             return line.len;
@@ -474,16 +483,13 @@ pub const Printer = struct {
     pub fn writeAllMaybePrependSpace(self: *Self, line: []const u8) !void {
         if (line.len == 0) {
             return;
-        }
+       }
 
-        if (!self.wrap_enabled) {
-            try self.writeAll(line);
-        }
-
-        if (self.index != 0 and !ascii.isSpace(self.buffer[self.index-1]) and !ascii.isSpace(line[0])) {
+        if (self.characters_since_newline != 0 and !ascii.isSpace(line[0])) {
             try self.writeAll(" ");
-            try self.writeAll(line);
         }
+
+        try self.writeAll(line);
     }
 };
 
