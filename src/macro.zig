@@ -257,7 +257,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, printer: *Pr
                 try printer.setEmphasis(false);
             if (printer.double_strike)
                 try printer.setDoubleStrike(false);
-            if (printer.underline)
+            if (printer.underline != .none)
                 try printer.setUnderline(.none);
             if (printer.inverted)
                 try printer.setInverted(false);
@@ -313,8 +313,16 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, printer: *Pr
             // Change word wrap
             // Wrap length of 0 disables printer
             const arg = iter.next() orelse return error.MissingMacroArg;
-            const num = try fmt.parseInt(u8, arg, 10);
-            try printer.setWrap(num);
+            if (mem.eql(u8, arg, "auto")) {
+                try printer.setWrapAuto(true);
+            } else if (mem.eql(u8, arg, "enable")) {
+                try printer.enableWrapping(true);
+            } else if (mem.eql(u8, arg, "disable")) {
+                try printer.enableWrapping(false);
+            } else {
+                const num = try fmt.parseInt(u8, arg, 10);
+                try printer.setWrap(num);
+            }
         },
 
     }
