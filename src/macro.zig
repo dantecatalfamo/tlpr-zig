@@ -315,6 +315,8 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, printer: *Pr
             const arg = iter.next() orelse return error.MissingMacroArg;
             if (mem.eql(u8, arg, "auto")) {
                 try printer.setWrapAuto(true);
+            } else if (mem.eql(u8, arg, "noauto")) {
+                try printer.setWrapAuto(false);
             } else if (mem.eql(u8, arg, "enable")) {
                 try printer.enableWrapping(true);
             } else if (mem.eql(u8, arg, "disable")) {
