@@ -424,7 +424,7 @@ pub const Printer = struct {
 
     pub fn setWrapAuto(self: *Self, enable: bool) !void {
         self.wrap_auto = enable;
-        try recalculateAutoWrap();
+        try self.recalculateAutoWrap();
     }
 
     pub fn getWrapLength(font: Font, size: u3) u8 {
