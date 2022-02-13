@@ -470,6 +470,21 @@ pub const Printer = struct {
         if (self.upside_down)
             try self.setUpsideDown(false);
     }
+
+    pub fn writeAllMaybePrependSpace(self: *Self, line: []const u8) !void {
+        if (line.len == 0) {
+            return;
+        }
+
+        if (!self.wrap_enabled) {
+            try self.writeAll(line);
+        }
+
+        if (self.index != 0 and !ascii.isSpace(self.buffer[self.index-1]) and !ascii.isSpace(line[0])) {
+            try self.writeAll(" ");
+            try self.writeAll(line);
+        }
+    }
 };
 
 /// Xprinter 80mm text line lengths in characters

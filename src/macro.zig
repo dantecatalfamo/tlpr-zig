@@ -15,7 +15,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, printer: *Pr
     }
 
     if (line[0] != '.') {
-        try printer.writeAll(line);
+        try printer.writeAllMaybePrependSpace(line);
         return;
     }
 
@@ -314,7 +314,7 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, printer: *Pr
 
     }
 
-    try printer.writeAll(iter.rest());
+    try printer.writeAllMaybePrependSpace(iter.rest());
 }
 
 const macro_keywords = enum {
