@@ -142,7 +142,7 @@ pub const Printer = struct {
     }
 
     pub fn flushMaybeNewline(self: *Self) !void {
-        if (self.index != 0 or !self.wrap_enabled) {
+        if (!self.wrap_enabled or self.index != 0) {
             try self.writeAll("\n");
         }
     }
@@ -485,7 +485,9 @@ pub const Printer = struct {
             return;
        }
 
-        if (self.characters_since_newline != 0 and !ascii.isSpace(line[0])) {
+        const last_buffer_char_was_space = self.wrap_enabled and self.index != 0 and ascii.isSpace(self.buffer[self.index-1]);
+
+        if (self.characters_since_newline != 0 and !ascii.isSpace(line[0]) and !last_buffer_char_was_space) {
             try self.writeAll(" ");
         }
 
