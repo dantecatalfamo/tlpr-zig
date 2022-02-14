@@ -10,7 +10,7 @@ Most ESC/POS commands are implemented in `src/commands.zig`.
 usage: tlpr --ip <ip> [options]
        tlpr --stdout  [options]
     Thermal Line Printer application.
-    Prints stdin through thermal printer.
+    Prints input through thermal printer.
 
     -c cut paper after printing.
     -e emphasis
@@ -19,6 +19,7 @@ usage: tlpr --ip <ip> [options]
     -u underline
     -uu double underline
     --alt use alternate font
+    --file <path> read input from file instead of stdin
     --height <1-8> select character height
     --image <path> print an image
     --ip the IP address of the printer

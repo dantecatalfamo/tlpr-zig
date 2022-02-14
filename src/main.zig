@@ -24,6 +24,7 @@ pub fn main() anyerror!void {
     var upside_down = false;
     var char_height: ?u4 = null;
     var char_width: ?u4 = null;
+    var input_file_path: ?[]const u8 = null;
     var reverse_black_white = false;
     var no_initialize = false;
     var image_path: ?[]u8 = null;
@@ -120,6 +121,12 @@ pub fn main() anyerror!void {
             }
             word_wrap = try std.fmt.parseInt(u8, args[arg_idx + 1], 10);
             arg_idx += 1;
+        } else if (mem.eql(u8, arg, "--file")) {
+            if (arg_idx + 1 == args.len) {
+                usage();
+            }
+            input_file_path = args[arg_idx + 1];
+            arg_idx += 1;
         }
     }
 
@@ -139,6 +146,14 @@ pub fn main() anyerror!void {
     }
 
     printer = Printer.init(connection);
+
+    const input = blk: {
+        if (input_file_path) |path| {
+            const input_file = try std.fs.cwd().openFile(path, .{});
+            break :blk input_file.reader();
+        }
+        break :blk stdin;
+    };
 
     if (word_wrap) |wrap_len| {
       try printer.setWrap(wrap_len);
@@ -214,7 +229,7 @@ pub fn main() anyerror!void {
         var line_number: usize = 0;
         while (true) {
             line_number += 1;
-            const line = try stdin.readUntilDelimiterOrEof(read_buffer[0..], '\n');
+            const line = try input.readUntilDelimiterOrEof(read_buffer[0..], '\n');
             if (line) |valid_line| {
                 macro.processMacroLine(allocator, valid_line, &printer) catch |err| {
                     try stderr.print("Macro error on line {d}: {s}\n", .{ line_number, @errorName(err) });
@@ -227,7 +242,7 @@ pub fn main() anyerror!void {
         }
     } else {
         while (true) {
-            const line = try stdin.readUntilDelimiterOrEof(read_buffer[0..], '\n');
+            const line = try input.readUntilDelimiterOrEof(read_buffer[0..], '\n');
             if (line) |valid_line| {
                 try printer.writeAll(valid_line);
                 try printer.writeAll("\n");
@@ -248,7 +263,7 @@ fn usage() noreturn {
         \\usage: tlpr --ip <ip> [options]
         \\       tlpr --stdout  [options]
         \\    Thermal Line Printer application.
-        \\    Prints stdin through thermal printer.
+        \\    Prints input through thermal printer.
         \\
         \\    -c cut paper after printing.
         \\    -e emphasis
@@ -257,6 +272,7 @@ fn usage() noreturn {
         \\    -u underline
         \\    -uu double underline
         \\    --alt use alternate font
+        \\    --file <path> read input from file instead of stdin
         \\    --height <1-8> select character height
         \\    --image <path> print an image
         \\    --ip the IP address of the printer
