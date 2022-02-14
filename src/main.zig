@@ -236,7 +236,7 @@ pub fn main() anyerror!void {
                     return err;
                 };
             } else {
-                try connection.writeAll("\n");
+                try printer.writeAll("\n");
                 break;
             }
         }
