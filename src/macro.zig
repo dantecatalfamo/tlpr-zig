@@ -298,20 +298,21 @@ pub fn processMacroLine(allocator: mem.Allocator, line: []const u8, printer: *Pr
             // Change word wrap
             // Wrap length of 0 disables printer
             const arg = iter.next() orelse return error.MissingMacroArg;
-            if (mem.eql(u8, arg, "auto")) {
-                try printer.setWrapAuto(true);
-            } else if (mem.eql(u8, arg, "noauto")) {
-                try printer.setWrapAuto(false);
-            } else if (mem.eql(u8, arg, "enable")) {
-                try printer.enableWrapping(true);
-            } else if (mem.eql(u8, arg, "disable")) {
-                try printer.enableWrapping(false);
-            } else {
-                const num = try fmt.parseInt(u8, arg, 10);
-                try printer.setWrap(num);
-            }
+            const num = try fmt.parseInt(u8, arg, 10);
+            try printer.setWrap(num);
         },
-
+        .We => {
+            try printer.enableWrapping(true);
+        },
+        .Wd => {
+            try printer.enableWrapping(false);
+        },
+        .Wa => {
+            try printer.setWrapAuto(true);
+        },
+        .Wn => {
+            try printer.setWrapAuto(false);
+        },
     }
 
     try printer.writeAllMaybePrependSpace(iter.rest());
@@ -364,5 +365,9 @@ const macro_keywords = enum {
     Un,
     Uo,
     Ut,
+    Wa,
+    We,
+    Wd,
+    Wn,
     Ww,
 };
