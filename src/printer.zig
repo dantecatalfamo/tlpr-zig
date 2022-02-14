@@ -142,7 +142,7 @@ pub const Printer = struct {
     }
 
     pub fn flushMaybeNewline(self: *Self) !void {
-        if (!self.wrap_enabled or self.index != 0) {
+        if (self.characters_since_newline != 0) {
             try self.writeAll("\n");
         }
     }
