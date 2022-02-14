@@ -118,6 +118,7 @@ pub const Printer = struct {
                 try self.connection.writeAll("\n");
                 mem.copy(u8, self.buffer[0..], remaining);
                 self.index = remaining.len;
+                self.characters_since_newline = remaining.len;
                 self.last_space = 0;
             }
         }
