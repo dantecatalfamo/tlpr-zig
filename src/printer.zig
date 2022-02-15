@@ -9,6 +9,11 @@ const BitImageMode = commands.BitImageMode;
 const raster_image = @import("raster_image.zig");
 const Threshold = raster_image.Threshold;
 
+// TODO: buffer all text + commands in the same buffer so newlines can
+// be inserted. Currently if a command is run right before a line
+// wrap, since it flushed all text from the buffer it is not possible
+// to go back and insert a newline
+
 pub const PrinterConnection = union(enum) {
     file: std.fs.File.Writer,
     socket: std.net.Stream.Writer,
